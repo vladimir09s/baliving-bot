@@ -1,15 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import Handler from "./engine/handler";
+import {UsersService} from "../users/users.service";
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
 const BOT_CHAT_TYPE: string = 'private';
-const START_COMMAND: string = '/start';
 
 @Injectable()
-export class BotService implements OnModuleInit {
+export class BotService extends Handler implements OnModuleInit {
   private bot: any;
 
-  constructor() {
+  constructor(usersService: UsersService) {
+    super(usersService);
     this.bot = new TelegramBot(process.env.TOKEN, { polling: true });
   }
 
@@ -27,12 +29,7 @@ export class BotService implements OnModuleInit {
   botMessage() {
     this.bot.on('message', (message) => {
       if (message.chat.type === BOT_CHAT_TYPE) {
-        if (message.text.toString() === START_COMMAND) {
-          this.bot.sendMessage(
-            message.chat.id,
-            "Hello my dear! What's going on?",
-          );
-        }
+        this.handle(this.bot, message);
       }
     });
   }
