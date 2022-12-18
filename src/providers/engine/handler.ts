@@ -7,7 +7,11 @@ export default class Handler {
     private readonly callbackHandler: CallbackHandler;
     private readonly messageHandler: MessageHandler;
 
-    constructor(usersService: UsersService, requestsService: RequestsService, bot) {
+    constructor(
+        usersService: UsersService,
+        requestsService: RequestsService,
+        protected readonly bot
+    ) {
         this.callbackHandler = new CallbackHandler(usersService, requestsService, bot);
         this.messageHandler = new MessageHandler(usersService, requestsService, bot);
     }

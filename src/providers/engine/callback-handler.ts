@@ -30,7 +30,7 @@ export default class CallbackHandler {
     constructor(
         private readonly usersService: UsersService,
         private readonly requestsService: RequestsService,
-        protected readonly bot
+        private readonly bot
     ) {}
 
     async handle(chatId, userId, messageId, data, keyboard) {

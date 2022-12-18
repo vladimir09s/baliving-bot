@@ -25,7 +25,7 @@ export default class MessageHandler {
     constructor(
         private readonly usersService: UsersService,
         private readonly requestsService: RequestsService,
-        protected readonly bot
+        private readonly bot
     ) {}
     async handle(message) {
         const chatId: number = message.chat.id;
