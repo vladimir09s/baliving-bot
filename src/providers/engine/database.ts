@@ -15,4 +15,22 @@ export default class Database {
             console.error(exception);
         }
     }
+
+    static async findProperties(areas, beds, price) {
+        const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
+        try {
+            const records = await airtable
+                .base(process.env.AIRTABLE_BASE_ID)
+                .table(process.env.AIRTABLE_PROPERTIES_TABLE_ID)
+                .select()
+                .all();
+            return records.filter((record) => {
+                return areas.includes(record.get('Район')) &&
+                    beds.includes(record.get('Количество спален')) &&
+                    price >= record.get('Цена долларов в месяц');
+            });
+        } catch (exception) {
+            console.error(exception);
+        }
+    }
 }

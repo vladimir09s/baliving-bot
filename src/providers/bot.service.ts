@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import Handler from "./engine/handler";
 import {UsersService} from "../users/users.service";
+import {RequestsService} from "../requests/requests.service";
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
@@ -9,9 +10,9 @@ const BOT_CHAT_TYPE: string = 'private';
 @Injectable()
 export class BotService extends Handler implements OnModuleInit {
 
-  constructor(usersService: UsersService) {
+  constructor(usersService: UsersService, requestsService: RequestsService) {
     const bot = new TelegramBot(process.env.TOKEN, { polling: true });
-    super(usersService, bot);
+    super(usersService, requestsService, bot);
   }
 
   onModuleInit() {
@@ -22,13 +23,17 @@ export class BotService extends Handler implements OnModuleInit {
   botCallback() {
     const _this = this;
     this.bot.on('callback_query', function onCallbackQuery(callbackQuery) {
-      _this.handleCallback(
-          callbackQuery.message.chat.id,
-          callbackQuery.from.id,
-          callbackQuery.message.message_id,
-          callbackQuery.data,
-          callbackQuery.message.reply_markup.inline_keyboard,
-      );
+      try {
+        _this.handleCallback(
+            callbackQuery.message.chat.id,
+            callbackQuery.from.id,
+            callbackQuery.message.message_id,
+            callbackQuery.data,
+            callbackQuery.message.reply_markup.inline_keyboard,
+        );
+      } catch (exception) {
+        console.error(exception);
+      }
     });
   }
 

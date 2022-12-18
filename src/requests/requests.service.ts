@@ -14,18 +14,12 @@ export class RequestsService {
     return await this.requestsRepository.save(request);
   }
 
-  async findOne(userId: number) {
-    const exists: boolean = await this.requestsRepository.exist({ where: { userId } });
-    if (exists) {
-      return await this.requestsRepository.findOneBy({ userId });
-    } else {
-      const request = this.requestsRepository.create({ userId });
-      return await this.requestsRepository.save(request);
-    }
+  async find(id: number) {
+    return await this.requestsRepository.findOneBy({ id });
   }
 
-  async update(userId: number, attributes) {
-    const request: Request = await this.findOne(userId);
+  async update(id: number, attributes) {
+    const request: Request = await this.find(id);
     return await this.requestsRepository.save({ ...request, ...attributes });
   }
 }
