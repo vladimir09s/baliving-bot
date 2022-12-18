@@ -8,8 +8,8 @@ import {
     UpdateDateColumn
 } from 'typeorm';
 
-@Entity({ name: 'users' })
-export class User {
+@Entity({ name: 'requests' })
+export class Request {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -17,23 +17,17 @@ export class User {
     @Generated('uuid')
     guid: string;
 
-    @Column({ 'name': 'chat_id', 'type': 'bigint' })
-    chatId: number;
-
     @Column({ 'name': 'user_id', 'type': 'bigint' })
     userId: number;
 
-    @Column({ 'name': 'email', 'default': null })
-    email: string;
+    @Column({ 'name': 'areas', 'type': 'simple-array', 'default': null })
+    areas: string;
 
-    @Column({ 'name': 'current_action', 'default': null })
-    currentAction: string;
+    @Column({ 'name': 'beds', 'type': 'simple-array', 'default': null })
+    beds: string;
 
-    @Column({ 'name': 'next_action', 'default': null })
-    nextAction: string;
-
-    @Column({ 'name': 'request_id', 'type': 'bigint', 'default': null })
-    requestId: number;
+    @Column({ 'name': 'price', 'default': null })
+    price: number;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;

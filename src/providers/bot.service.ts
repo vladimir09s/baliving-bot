@@ -8,11 +8,10 @@ const BOT_CHAT_TYPE: string = 'private';
 
 @Injectable()
 export class BotService extends Handler implements OnModuleInit {
-  private bot: any;
 
   constructor(usersService: UsersService) {
-    super(usersService);
-    this.bot = new TelegramBot(process.env.TOKEN, { polling: true });
+    const bot = new TelegramBot(process.env.TOKEN, { polling: true });
+    super(usersService, bot);
   }
 
   onModuleInit() {
@@ -21,15 +20,22 @@ export class BotService extends Handler implements OnModuleInit {
   }
 
   botCallback() {
+    const _this = this;
     this.bot.on('callback_query', function onCallbackQuery(callbackQuery) {
-      console.debug(callbackQuery);
+      _this.handleCallback(
+          callbackQuery.message.chat.id,
+          callbackQuery.from.id,
+          callbackQuery.message.message_id,
+          callbackQuery.data,
+          callbackQuery.message.reply_markup.inline_keyboard,
+      );
     });
   }
 
   botMessage() {
     this.bot.on('message', (message) => {
       if (message.chat.type === BOT_CHAT_TYPE) {
-        this.handle(this.bot, message);
+        this.handle(message);
       }
     });
   }
