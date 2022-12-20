@@ -6,6 +6,7 @@ import areas from "../../config/areas";
 import { RequestsService } from "../../requests/requests.service";
 
 const START_COMMAND: string = '/start';
+const EDIT_COMMAND: string = '/edit';
 
 const DEFAULT_LOCALE = 'ru';
 
@@ -36,14 +37,35 @@ export default class MessageHandler {
         try {
             if (message.text.toString() === START_COMMAND) {
                 await this.handleStartMessage(message, user);
-            } else if (user.nextAction === 'read-email') {
+            } else if (user.nextAction && user.nextAction === 'read-email') {
                 await this.handleEmailMessage(message, user);
-            } else if (user.nextAction.includes('read-price')) {
+            } else if (user.nextAction && user.nextAction.includes('read-price')) {
                 await this.handlePriceMessage(message, user);
+            } else if (message.text.toString() === EDIT_COMMAND) {
+                await this.handleEditMessage(message);
+            } else if (user.nextAction && user.nextAction.includes('read-edit-price')) {
+                // do smth ...
             }
         } catch (exception) {
             console.error(exception);
         }
+    }
+
+    async handleEditMessage(message) {
+        const options: any = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: locales[DEFAULT_LOCALE].editAreas, callback_data: 'edit-areas' }],
+                    [{ text: locales[DEFAULT_LOCALE].editBeds, callback_data: 'edit-beds' }],
+                    [{ text: locales[DEFAULT_LOCALE].editPrice, callback_data: 'edit-price' }],
+                ]
+            }
+        }
+        await this.bot.sendMessage(
+            message.chat.id,
+            locales[DEFAULT_LOCALE].choseEditOption,
+            options
+        );
     }
 
     async handlePriceMessage(message, user) {
@@ -70,7 +92,6 @@ export default class MessageHandler {
                 reply_markup: {
                     inline_keyboard: [
                         [{ text: locales[DEFAULT_LOCALE].agree, callback_data: 'start-search' }],
-                        [{ text: locales[DEFAULT_LOCALE].menu, callback_data: 'menu' }],
                     ]
                 }
             }
@@ -98,38 +119,90 @@ export default class MessageHandler {
     async handleEmailMessage(message, user) {
         const email: string = message.text.toString().toLowerCase();
         await this.usersService.update(user.userId, user.chatId, { email });
-        this.bot.sendMessage(
+        await this.bot.sendMessage(
             message.chat.id,
             locales[DEFAULT_LOCALE].checking,
         );
         const databaseUser: any = await Database.findUser(email);
         if (!databaseUser) {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
-            this.bot.sendMessage(
-                message.chat.id,
-                locales[DEFAULT_LOCALE].notFound,
-            );
-        } else if (databaseUser.get('Доступ действителен') === CHOSE) {
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[2]);
-            let keyboard: any = [];
-            areas.forEach(area => {
-                keyboard.push([{text: `${area}`, callback_data: `read-areas ${area}` }],)
-            })
             const options: any = {
                 reply_markup: {
-                    inline_keyboard: keyboard
+                    inline_keyboard: [
+                        [{
+                            text: locales[DEFAULT_LOCALE].goToWebsite,
+                            switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                            url: 'https://baliving.ru/tariffs'
+                        }],
+                        [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                    ]
                 }
             }
-            this.bot.sendMessage(
+            await this.bot.sendMessage(
                 message.chat.id,
-                locales[DEFAULT_LOCALE].chooseAreas,
+                locales[DEFAULT_LOCALE].notFound,
                 options
             );
+        } else if (databaseUser.get('Доступ действителен') === CHOSE) {
+            if (databaseUser.get('Plan') === 'VIP') {
+                await this.usersService.update(user.userId, user.chatId, ACTIONS[2]);
+                let keyboard: any = [];
+                areas.forEach(area => {
+                    keyboard.push([{text: `${area}`, callback_data: `read-areas ${area}` }])
+                })
+                const options: any = {
+                    reply_markup: {
+                        inline_keyboard: keyboard
+                    }
+                }
+                await this.bot.sendMessage(
+                    message.chat.id,
+                    locales[DEFAULT_LOCALE].chooseAreas,
+                    options
+                );
+            } else {
+                await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
+                const options: any = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{
+                                text: locales[DEFAULT_LOCALE].goToWebsite,
+                                switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                                url: 'https://baliving.ru/tariffs'
+                            }],
+                            [{
+                                text: locales[DEFAULT_LOCALE].writeToSupport,
+                                switch_inline_query: locales[DEFAULT_LOCALE].writeToSupport,
+                                url: 'https://t.me/info_baliving'
+                            }],
+                            [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                        ]
+                    }
+                }
+                await this.bot.sendMessage(
+                    message.chat.id,
+                    locales[DEFAULT_LOCALE].expired,
+                    options
+                );
+            }
         } else {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
-            this.bot.sendMessage(
+            const options: any = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{
+                            text: locales[DEFAULT_LOCALE].goToWebsite,
+                            switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                            url: 'https://baliving.ru/tariffs'
+                        }],
+                        [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                    ]
+                }
+            }
+            await this.bot.sendMessage(
                 message.chat.id,
                 locales[DEFAULT_LOCALE].expired,
+                options
             );
         }
     }

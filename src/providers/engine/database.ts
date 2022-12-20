@@ -25,7 +25,8 @@ export default class Database {
                 .select()
                 .all();
             return records.filter((record) => {
-                return areas.includes(record.get('Район')) &&
+                return record.get('Модерация') &&
+                    areas.includes(record.get('Район')) &&
                     beds.includes(record.get('Количество спален')) &&
                     price >= record.get('Цена долларов в месяц');
             });
