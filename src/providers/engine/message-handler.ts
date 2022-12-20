@@ -39,12 +39,12 @@ export default class MessageHandler {
                 await this.handleStartMessage(message, user);
             } else if (user.nextAction && user.nextAction === 'read-email') {
                 await this.handleEmailMessage(message, user);
-            } else if (user.nextAction && user.nextAction.includes('read-price')) {
+            } else if (user.nextAction && (
+                user.nextAction.includes('read-price') || user.nextAction.includes('read-edit-price')
+            )) {
                 await this.handlePriceMessage(message, user);
             } else if (message.text.toString() === EDIT_COMMAND) {
                 await this.handleEditMessage(message);
-            } else if (user.nextAction && user.nextAction.includes('read-edit-price')) {
-                // do smth ...
             }
         } catch (exception) {
             console.error(exception);
@@ -111,7 +111,7 @@ export default class MessageHandler {
 
     async handleStartMessage(message, user) {
         await this.usersService.update(user.userId, user.chatId, { ...ACTIONS[0], requestId: null });
-        this.bot.sendMessage(
+        await this.bot.sendMessage(
             message.chat.id,
             locales[DEFAULT_LOCALE].start,
         );

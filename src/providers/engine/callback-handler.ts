@@ -12,7 +12,6 @@ const CHOSE = '✅';
 
 const FINISH = 'finish';
 const START_SEARCH = 'start-search';
-const MENU = 'menu';
 
 const EDIT_AREAS = 'edit-areas';
 const EDIT_BEDS = 'edit-beds';
@@ -44,7 +43,9 @@ export default class CallbackHandler {
         const user: User = await this.usersService.findOne(userId, chatId);
         console.debug(user);
         try {
-            if (user.nextAction === 'read-areas') {
+            if (data === 'start') {
+                await this.handleStartMessage(chatId, userId);
+            } else if (user.nextAction === 'read-areas') {
                 if (data === FINISH) {
                     await this.handleFinishAreaMessage(messageId, user, keyboard);
                 } else {
@@ -55,11 +56,6 @@ export default class CallbackHandler {
                     await this.handleFinishBedMessage(messageId, user, keyboard);
                 } else {
                     await this.handleBedMessage(messageId, data, keyboard, user);
-                }
-            } else if (user.nextAction === 'confirm') {
-                console.log(data);
-                if (data === START_SEARCH) {
-                    await this.handleSearchMessage(messageId, user);
                 }
             } else if ([EDIT_AREAS, EDIT_BEDS, EDIT_PRICE].includes(data)) {
                 const isValid: boolean = await this.isValidUser(user);
@@ -76,12 +72,25 @@ export default class CallbackHandler {
                             break;
                     }
                 }
+            } else if (user.nextAction === 'confirm') {
+                console.log(data);
+                if (data === START_SEARCH) {
+                    await this.handleSearchMessage(messageId, user);
+                }
             } else if (user.nextAction && user.nextAction.includes('read-edit')) {
                 if (user.nextAction.includes('read-edit-areas')) {
-
+                    if (data === FINISH) {
+                        await this.handleFinishAreaMessage(messageId, user, keyboard, true);
+                    } else if (data.includes('read-areas')) {
+                        await this.handleAreaMessage(messageId, data, keyboard, user);
+                    }
                 }
                 if (user.nextAction.includes('read-edit-beds')) {
-
+                    if (data === FINISH) {
+                        await this.handleFinishBedMessage(messageId, user, keyboard, true);
+                    } else if (data.includes('read-beds')) {
+                        await this.handleBedMessage(messageId, data, keyboard, user);
+                    }
                 }
             }
         } catch (exception) {
@@ -89,12 +98,31 @@ export default class CallbackHandler {
         }
     }
 
+    async handleStartMessage(chatId, userId) {
+        await this.usersService.update(userId, chatId, { ...ACTIONS[0], requestId: null });
+        await this.bot.sendMessage(
+            chatId,
+            locales[DEFAULT_LOCALE].start,
+        );
+    }
+
     async handleEditAreasMessage(messageId, user) {
+        const request: any = await this.requestsService.find(+user.requestId);
         await this.usersService.update(user.userId, user.chatId, ACTIONS[7]);
         let keyboard: any = [];
+        let hasChosenItems = false;
         areas.forEach(area => {
-            keyboard.push([{text: `${area}`, callback_data: `read-areas ${area}` }],)
-        })
+            const text = request.areas && request.areas.includes(area) ? `${CHOSE} ${area}` : `${area}`;
+            keyboard.push([{text, callback_data: `read-areas ${area}` }])
+            if (text[0] === CHOSE) {
+                hasChosenItems = true;
+            }
+        });
+        if (keyboard.length === areas.length && hasChosenItems) {
+            keyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+        } else if (!hasChosenItems && keyboard.length > areas.length) {
+            keyboard.pop();
+        }
         const options: any = {
             reply_markup: {
                 inline_keyboard: keyboard
@@ -108,11 +136,22 @@ export default class CallbackHandler {
     }
 
     async handleEditBedsMessage(messageId, user) {
+        const request: any = await this.requestsService.find(+user.requestId);
         await this.usersService.update(user.userId, user.chatId, ACTIONS[8]);
         let keyboard: any = [];
+        let hasChosenItems = false;
         beds.forEach((numberOfBeds, index) => {
-            keyboard.push([{text: `${numberOfBeds}`, callback_data: `read-beds ${index + 1}` }],)
-        })
+            const text = request.beds && request.beds.includes(`${index + 1}`) ? `${CHOSE} ${numberOfBeds}` : `${numberOfBeds}`;
+            keyboard.push([{text, callback_data: `read-beds ${index + 1}` }])
+            if (text[0] === CHOSE) {
+                hasChosenItems = true;
+            }
+        });
+        if (keyboard.length === beds.length && hasChosenItems) {
+            keyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+        } else if (!hasChosenItems && keyboard.length > beds.length) {
+            keyboard.pop();
+        }
         const options: any = {
             reply_markup: {
                 inline_keyboard: keyboard
@@ -126,6 +165,7 @@ export default class CallbackHandler {
     }
 
     async handleEditPriceMessage(messageId, user) {
+        console.debug(messageId);
         await this.usersService.update(user.userId, user.chatId, ACTIONS[9]);
         const botMessage = await this.bot.sendMessage(
             user.chatId,
@@ -164,7 +204,7 @@ export default class CallbackHandler {
     }
 
     async handleSearchMessage(messageId, user) {
-        await this.bot.editMessageReplyMarkup(user.chatId, messageId, null, null);
+        // await this.bot.editMessageReplyMarkup(user.chatId, messageId, null, null);
         await this.usersService.update(user.userId, user.chatId, ACTIONS[6]);
         await this.bot.sendMessage(
             user.chatId,
@@ -174,16 +214,15 @@ export default class CallbackHandler {
         console.log(request);
         const databaseProperties: any = await Database.findProperties(request.areas, request.beds, request.price);
         if (databaseProperties.length) {
-            console.debug(databaseProperties[0]);
-            await this.bot.sendMessage(
-                user.chatId,
-                locales[DEFAULT_LOCALE].foundOptions,
-            );
             for (const property of databaseProperties) {
                 if (this.isValidUrl(property.get('Телеграм ссылка'))) {
                     await this.sendProperty(property, user);
                 }
             }
+            await this.bot.sendMessage(
+                user.chatId,
+                locales[DEFAULT_LOCALE].foundOptions,
+            );
         } else {
             await this.bot.sendMessage(
                 user.chatId,
@@ -233,31 +272,57 @@ export default class CallbackHandler {
         return url.protocol === "http:" || url.protocol === "https:";
     }
 
-    async handleFinishBedMessage(messageId, user, keyboardBeds) {
+    async handleFinishBedMessage(messageId, user, keyboardBeds, isEdit = false) {
         await this.bot.deleteMessage(user.chatId, messageId);
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[4]);
+        const actionData = isEdit ? ACTIONS[5] : ACTIONS[4];
+        await this.usersService.update(user.userId, user.chatId, actionData);
         let beds = [];
         keyboardBeds.forEach((keyboardBed, index) => {
             if (keyboardBed[0].text[0] === CHOSE) {
                 beds.push(index + 1);
             }
         });
-        await this.requestsService.update(+user.requestId, { beds });
-        const botMessage = await this.bot.sendMessage(
-            user.chatId,
-            locales[DEFAULT_LOCALE].price
-        );
-        console.log(`need to remove msg #${botMessage.message_id}`);
-        await this.usersService.update(user.userId, user.chatId, { nextAction: `${ACTIONS[4].nextAction},delete-message:${botMessage.message_id}`});
+        const request: any = await this.requestsService.update(+user.requestId, { beds });
+        if (isEdit) {
+            await this.bot.sendMessage(
+                user.chatId,
+                locales[DEFAULT_LOCALE].finish,
+                { parse_mode: 'html' }
+            );
+            const options: any = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: locales[DEFAULT_LOCALE].agree, callback_data: 'start-search' }],
+                    ]
+                }
+            }
+            let template: string = locales[DEFAULT_LOCALE].details;
+            template = template.replace('${areas}', request.areas.join(','));
+            template = template.replace('${beds}', request.beds.join(','));
+            template = template.replace('${price}', request.price);
+            await this.bot.sendMessage(
+                user.chatId,
+                template,
+                options
+            );
+        } else {
+            const botMessage = await this.bot.sendMessage(
+                user.chatId,
+                locales[DEFAULT_LOCALE].price
+            );
+            console.log(`need to remove msg #${botMessage.message_id}`);
+            await this.usersService.update(user.userId, user.chatId, { nextAction: `${ACTIONS[4].nextAction},delete-message:${botMessage.message_id}`});
+        }
     }
 
-    async handleFinishAreaMessage(messageId, user, keyboardAreas) {
+    async handleFinishAreaMessage(messageId, user, keyboardAreas, isEdit = false) {
         await this.bot.deleteMessage(user.chatId, messageId);
+        const actionData = isEdit ? ACTIONS[5] : ACTIONS[3];
         if (!user.requestId) {
             const request: any = await this.requestsService.create({ userId: user.id });
-            user = await this.usersService.update(user.userId, user.chatId, { ...ACTIONS[3], requestId: request.id });
+            user = await this.usersService.update(user.userId, user.chatId, { ...actionData, requestId: request.id });
         } else {
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[3]);
+            await this.usersService.update(user.userId, user.chatId, actionData);
         }
         let areas = [];
         keyboardAreas.forEach(keyboardArea => {
@@ -265,21 +330,45 @@ export default class CallbackHandler {
                 areas.push(keyboardArea[0].text.substring(2));
             }
         });
-        await this.requestsService.update(+user.requestId, { areas });
-        let keyboard: any = [];
-        beds.forEach((numberOfBeds, index) => {
-            keyboard.push([{text: `${numberOfBeds}`, callback_data: `read-beds ${index + 1}` }],)
-        })
-        const options: any = {
-            reply_markup: {
-                inline_keyboard: keyboard
+        const request: any = await this.requestsService.update(+user.requestId, { areas });
+        if (isEdit) {
+            await this.bot.sendMessage(
+                user.chatId,
+                locales[DEFAULT_LOCALE].finish,
+                { parse_mode: 'html' }
+            );
+            const options: any = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: locales[DEFAULT_LOCALE].agree, callback_data: 'start-search' }],
+                    ]
+                }
             }
+            let template: string = locales[DEFAULT_LOCALE].details;
+            template = template.replace('${areas}', request.areas.join(','));
+            template = template.replace('${beds}', request.beds.join(','));
+            template = template.replace('${price}', request.price);
+            await this.bot.sendMessage(
+                user.chatId,
+                template,
+                options
+            );
+        } else {
+            let keyboard: any = [];
+            beds.forEach((numberOfBeds, index) => {
+                keyboard.push([{text: `${numberOfBeds}`, callback_data: `read-beds ${index + 1}` }],)
+            })
+            const options: any = {
+                reply_markup: {
+                    inline_keyboard: keyboard
+                }
+            }
+            await this.bot.sendMessage(
+                user.chatId,
+                locales[DEFAULT_LOCALE].numberOfBeds,
+                options
+            );
         }
-        await this.bot.sendMessage(
-            user.chatId,
-            locales[DEFAULT_LOCALE].numberOfBeds,
-            options
-        );
     }
 
     async handleBedMessage(messageId, data, keyboard, user) {
