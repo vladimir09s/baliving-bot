@@ -87,6 +87,7 @@ export default class MessageHandler {
             await this.bot.sendMessage(
                 message.chat.id,
                 locales[DEFAULT_LOCALE].finish,
+                { parse_mode: 'html' }
             );
             const options: any = {
                 reply_markup: {

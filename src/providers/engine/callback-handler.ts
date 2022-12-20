@@ -201,7 +201,8 @@ export default class CallbackHandler {
                         switch_inline_query: locales[DEFAULT_LOCALE].write,
                         url: property.get('Телеграм ссылка')
                     }]]
-                }
+                },
+                parse_mode: 'html'
             }
             let template: string = locales[DEFAULT_LOCALE].finalMessage;
             template = template.replace('${areas}', property.get('Район'));
