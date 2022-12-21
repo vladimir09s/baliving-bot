@@ -117,6 +117,15 @@ export default class MessageHandler {
         );
     }
 
+    sliceIntoChunks(array, size) {
+        const result = [];
+        for (let i = 0; i < array.length; i += size) {
+            const chunk = array.slice(i, i + size);
+            result.push(chunk);
+        }
+        return result;
+    }
+
     async handleEmailMessage(message, user) {
         const email: string = message.text.toString().toLowerCase();
         await this.usersService.update(user.userId, user.chatId, { email });
@@ -149,11 +158,16 @@ export default class MessageHandler {
                 await this.usersService.update(user.userId, user.chatId, ACTIONS[2]);
                 let keyboard: any = [];
                 areas.forEach(area => {
-                    keyboard.push([{text: `${area}`, callback_data: `read-areas ${area}` }])
+                    keyboard.push({text: `${area}`, callback_data: `read-areas ${area}` })
+                });
+                const inlineKeyboard: any = [];
+                const rows = this.sliceIntoChunks(keyboard, 2); // 2 cols in a row
+                rows.forEach(row => {
+                    inlineKeyboard.push(row);
                 })
                 const options: any = {
                     reply_markup: {
-                        inline_keyboard: keyboard
+                        inline_keyboard: inlineKeyboard
                     }
                 }
                 await this.bot.sendMessage(

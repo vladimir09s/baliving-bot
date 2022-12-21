@@ -276,9 +276,15 @@ export default class CallbackHandler {
         await this.bot.deleteMessage(user.chatId, messageId);
         const actionData = isEdit ? ACTIONS[5] : ACTIONS[4];
         await this.usersService.update(user.userId, user.chatId, actionData);
+        const keyboardItems: any = [];
+        keyboardBeds.forEach(subKeyboard => {
+            subKeyboard.forEach(subKeyboardItem => {
+                keyboardItems.push(subKeyboardItem);
+            })
+        })
         let beds = [];
-        keyboardBeds.forEach((keyboardBed, index) => {
-            if (keyboardBed[0].text[0] === CHOSE) {
+        keyboardItems.forEach((keyboardBed, index) => {
+            if (keyboardBed.text[0] === CHOSE) {
                 beds.push(index + 1);
             }
         });
@@ -325,9 +331,15 @@ export default class CallbackHandler {
             await this.usersService.update(user.userId, user.chatId, actionData);
         }
         let areas = [];
-        keyboardAreas.forEach(keyboardArea => {
-            if (keyboardArea[0].text[0] === CHOSE) {
-                areas.push(keyboardArea[0].text.substring(2));
+        const keyboardItems: any = [];
+        keyboardAreas.forEach(subKeyboard => {
+            subKeyboard.forEach(subKeyboardItem => {
+                keyboardItems.push(subKeyboardItem);
+            })
+        })
+        keyboardItems.forEach(keyboardArea => {
+            if (keyboardArea.text[0] === CHOSE) {
+                areas.push(keyboardArea.text.substring(2));
             }
         });
         const request: any = await this.requestsService.update(+user.requestId, { areas });
@@ -356,11 +368,16 @@ export default class CallbackHandler {
         } else {
             let keyboard: any = [];
             beds.forEach((numberOfBeds, index) => {
-                keyboard.push([{text: `${numberOfBeds}`, callback_data: `read-beds ${index + 1}` }],)
+                keyboard.push({text: `${numberOfBeds}`, callback_data: `read-beds ${index + 1}` })
+            })
+            const inlineKeyboard: any = [];
+            const rows = this.sliceIntoChunks(keyboard, 2); // 2 cols in a row
+            rows.forEach(row => {
+                inlineKeyboard.push(row);
             })
             const options: any = {
                 reply_markup: {
-                    inline_keyboard: keyboard
+                    inline_keyboard: inlineKeyboard
                 }
             }
             await this.bot.sendMessage(
@@ -372,41 +389,52 @@ export default class CallbackHandler {
     }
 
     async handleBedMessage(messageId, data, keyboard, user) {
+        const keyboardItems: any = [];
+        keyboard.forEach(subKeyboard => {
+            subKeyboard.forEach(subKeyboardItem => {
+                keyboardItems.push(subKeyboardItem);
+            })
+        })
         const numberOfBeds: number = +data.substring("read-beds ".length);
         console.debug(numberOfBeds);
         let newKeyboard = [];
         let hasChosenItems: boolean = false;
-        keyboard.forEach((keyboardItem) => {
-            let item = [];
-            if (keyboardItem[0].text.includes(beds[numberOfBeds - 1])) {
-                if (keyboardItem[0].text[0] === CHOSE) {
-                    item.push({
-                        text: keyboardItem[0].text.substring(2),
-                        callback_data: keyboardItem[0].callback_data
-                    });
+        keyboardItems.forEach((keyboardItem) => {
+            let item = null;
+            if (keyboardItem.text.includes(beds[numberOfBeds - 1])) {
+                if (keyboardItem.text[0] === CHOSE) {
+                    item = {
+                        text: keyboardItem.text.substring(2),
+                        callback_data: keyboardItem.callback_data
+                    };
                 } else {
-                    item.push({
-                        text: `${CHOSE} ${keyboardItem[0].text}`,
-                        callback_data: keyboardItem[0].callback_data
-                    });
+                    item = {
+                        text: `${CHOSE} ${keyboardItem.text}`,
+                        callback_data: keyboardItem.callback_data
+                    };
                 }
             } else {
                 item = keyboardItem;
             }
-            if (item[0].text[0] === CHOSE) {
+            if (item.text[0] === CHOSE) {
                 hasChosenItems = true;
             }
             newKeyboard.push(item);
         });
-        if (keyboard.length === beds.length && hasChosenItems) {
-            newKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
-        } else if (!hasChosenItems && keyboard.length > beds.length) {
-            newKeyboard.pop();
+        const inlineKeyboard: any = [];
+        const rows = this.sliceIntoChunks(newKeyboard, 2); // 2 cols in a row
+        rows.forEach(row => {
+            inlineKeyboard.push(row);
+        })
+        if (keyboardItems.length === beds.length && hasChosenItems) {
+            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+        } else if (!hasChosenItems && keyboardItems.length > beds.length) {
+            inlineKeyboard.pop();
         }
         await this.bot.deleteMessage(user.chatId, messageId);
         const options: any = {
             reply_markup: {
-                inline_keyboard: newKeyboard
+                inline_keyboard: inlineKeyboard
             }
         }
         await this.bot.sendMessage(
@@ -416,42 +444,63 @@ export default class CallbackHandler {
         );
     }
 
+    sliceIntoChunks(array, size) {
+        const result = [];
+        for (let i = 0; i < array.length; i += size) {
+            const chunk = array.slice(i, i + size);
+            result.push(chunk);
+        }
+        return result;
+    }
+
     async handleAreaMessage(messageId, data, keyboard, user) {
+        console.debug(keyboard);
+        const keyboardItems: any = [];
+        keyboard.forEach(subKeyboard => {
+            subKeyboard.forEach(subKeyboardItem => {
+                keyboardItems.push(subKeyboardItem);
+            })
+        })
         const area: string = data.substring("read-areas ".length);
         console.debug(area);
         let newKeyboard = [];
         let hasChosenItems: boolean = false;
-        keyboard.forEach((keyboardItem) => {
-            let item = [];
-            if (keyboardItem[0].text.includes(area)) {
-                if (keyboardItem[0].text[0] === CHOSE) {
-                    item.push({
-                        text: keyboardItem[0].text.substring(2),
-                        callback_data: keyboardItem[0].callback_data
-                    });
+        keyboardItems.forEach((keyboardItem) => {
+            let item = null;
+            if (keyboardItem.text.includes(area)) {
+                if (keyboardItem.text[0] === CHOSE) {
+                    item = {
+                        text: keyboardItem.text.substring(2),
+                        callback_data: keyboardItem.callback_data
+                    };
                 } else {
-                    item.push({
-                        text: `${CHOSE} ${keyboardItem[0].text}`,
-                        callback_data: keyboardItem[0].callback_data
-                    });
+                    item = {
+                        text: `${CHOSE} ${keyboardItem.text}`,
+                        callback_data: keyboardItem.callback_data
+                    };
                 }
             } else {
                 item = keyboardItem;
             }
-            if (item[0].text[0] === CHOSE) {
+            if (item.text[0] === CHOSE) {
                 hasChosenItems = true;
             }
             newKeyboard.push(item);
         });
-        if (keyboard.length === areas.length && hasChosenItems) {
-            newKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
-        } else if (!hasChosenItems && keyboard.length > beds.length) {
-            newKeyboard.pop();
+        const inlineKeyboard: any = [];
+        const rows = this.sliceIntoChunks(newKeyboard, 2); // 2 cols in a row
+        rows.forEach(row => {
+            inlineKeyboard.push(row);
+        })
+        if (keyboardItems.length === areas.length && hasChosenItems) {
+            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+        } else if (!hasChosenItems && keyboardItems.length > areas.length) {
+            inlineKeyboard.pop();
         }
         await this.bot.deleteMessage(user.chatId, messageId);
         const options: any = {
             reply_markup: {
-                inline_keyboard: newKeyboard
+                inline_keyboard: inlineKeyboard
             }
         }
         await this.bot.sendMessage(
