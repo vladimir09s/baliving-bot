@@ -113,19 +113,24 @@ export default class CallbackHandler {
         let hasChosenItems = false;
         areas.forEach(area => {
             const text = request.areas && request.areas.includes(area) ? `${CHOSE} ${area}` : `${area}`;
-            keyboard.push([{text, callback_data: `read-areas ${area}` }])
+            keyboard.push({text, callback_data: `read-areas ${area}` })
             if (text[0] === CHOSE) {
                 hasChosenItems = true;
             }
         });
+        const inlineKeyboard: any = [];
+        const rows = this.sliceIntoChunks(keyboard, 2); // 2 cols in a row
+        rows.forEach(row => {
+            inlineKeyboard.push(row);
+        })
         if (keyboard.length === areas.length && hasChosenItems) {
-            keyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
         } else if (!hasChosenItems && keyboard.length > areas.length) {
-            keyboard.pop();
+            inlineKeyboard.pop();
         }
         const options: any = {
             reply_markup: {
-                inline_keyboard: keyboard
+                inline_keyboard: inlineKeyboard
             }
         }
         await this.bot.sendMessage(
@@ -142,19 +147,24 @@ export default class CallbackHandler {
         let hasChosenItems = false;
         beds.forEach((numberOfBeds, index) => {
             const text = request.beds && request.beds.includes(`${index + 1}`) ? `${CHOSE} ${numberOfBeds}` : `${numberOfBeds}`;
-            keyboard.push([{text, callback_data: `read-beds ${index + 1}` }])
+            keyboard.push({ text, callback_data: `read-beds ${index + 1}` })
             if (text[0] === CHOSE) {
                 hasChosenItems = true;
             }
         });
+        const inlineKeyboard: any = [];
+        const rows = this.sliceIntoChunks(keyboard, 2); // 2 cols in a row
+        rows.forEach(row => {
+            inlineKeyboard.push(row);
+        })
         if (keyboard.length === beds.length && hasChosenItems) {
-            keyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
         } else if (!hasChosenItems && keyboard.length > beds.length) {
-            keyboard.pop();
+            inlineKeyboard.pop();
         }
         const options: any = {
             reply_markup: {
-                inline_keyboard: keyboard
+                inline_keyboard: inlineKeyboard
             }
         }
         await this.bot.sendMessage(
