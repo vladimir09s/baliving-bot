@@ -34,4 +34,26 @@ export default class Database {
             console.error(exception);
         }
     }
+
+    static async findNewProperties(areas, beds, price, dateFrom) {
+        const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
+        try {
+            const records = await airtable
+                .base(process.env.AIRTABLE_BASE_ID)
+                .table(process.env.AIRTABLE_PROPERTIES_TABLE_ID)
+                .select()
+                .all();
+            return records.filter((record) => {
+                // @ts-ignore
+                const createdDate = new Date(record.get('Дата создания'));
+                return record.get('Модерация') &&
+                    areas.includes(record.get('Район')) &&
+                    beds.includes(record.get('Количество спален')) &&
+                    price >= record.get('Цена долларов в месяц') &&
+                    createdDate >= dateFrom
+            });
+        } catch (exception) {
+            console.error(exception);
+        }
+    }
 }

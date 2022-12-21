@@ -24,6 +24,10 @@ export class UsersService {
     }
   }
 
+  async find() {
+    return await this.usersRepository.find();
+  }
+
   async update(userId: number, chatId: number, attributes) {
     const user: User = await this.findOne(userId, chatId);
     return await this.usersRepository.save({ ...user, ...attributes });

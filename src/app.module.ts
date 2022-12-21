@@ -5,9 +5,14 @@ import { User } from "./users/entities/user.entity";
 import { Request } from "./requests/entities/request.entity";
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RequestsService } from "./requests/requests.service";
+import { ScheduleModule } from '@nestjs/schedule';
+import { TasksService } from "./providers/tasks.service";
+
+
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -20,6 +25,6 @@ import { RequestsService } from "./requests/requests.service";
     }),
     TypeOrmModule.forFeature([User, Request]),
   ],
-  providers: [BotService, UsersService, RequestsService],
+  providers: [BotService, UsersService, RequestsService, TasksService],
 })
 export class AppModule {}
