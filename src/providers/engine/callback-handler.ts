@@ -254,6 +254,9 @@ export default class CallbackHandler {
                 parse_mode: 'html'
             }
             let template: string = locales[DEFAULT_LOCALE].finalMessage;
+            if (property.get('Заголовок')) {
+                template = `${property.get('Заголовок')}\n${template}`;
+            }
             template = template.replace('${areas}', property.get('Район'));
             template = template.replace('${beds}', property.get('Количество спален'));
             template = template.replace('${price}', property.get('Цена долларов в месяц'));
