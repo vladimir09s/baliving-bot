@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {UsersService} from "../users/users.service";
 import {RequestsService} from "../requests/requests.service";
@@ -14,8 +14,6 @@ const CATALOG_URL = 'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok
 
 @Injectable()
 export class TasksService {
-    private readonly logger = new Logger(TasksService.name);
-
     constructor(
         private readonly usersService: UsersService,
         private readonly requestsService: RequestsService,
@@ -23,7 +21,7 @@ export class TasksService {
 
     @Cron('0 * * * * *')
     handleCron() {
-        this.logger.debug('Checking new properties');
+        console.debug('Checking new properties ...');
         const bot = new TelegramBot(process.env.TOKEN);
         this.usersService.find().then(users => {
             users.forEach(user => {
