@@ -12,7 +12,7 @@ export default class Database {
                 .all();
             return records.find(record => record.get("Email") === email);
         } catch (exception) {
-            console.error(exception);
+            console.error(`issue detected ...\n${exception}`);
         }
     }
 
@@ -31,11 +31,11 @@ export default class Database {
                     price >= record.get('Цена долларов в месяц');
             });
         } catch (exception) {
-            console.error(exception);
+            console.error(`issue detected ...\n${exception}`);
         }
     }
 
-    static async findNewProperties(areas, beds, price, dateFrom) {
+    static async findNewProperties(areas, beds, price, properties = []) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
         try {
             const records = await airtable
@@ -44,16 +44,15 @@ export default class Database {
                 .select()
                 .all();
             return records.filter((record) => {
-                // @ts-ignore
-                const createdDate = new Date(record.get('Дата создания'));
-                return record.get('Модерация') &&
+                return !properties.includes(`${record.get('Номер')}`) &&
+                    record.get('Модерация') &&
                     areas.includes(record.get('Район')) &&
                     beds.includes(record.get('Количество спален')) &&
-                    price >= record.get('Цена долларов в месяц') &&
-                    createdDate >= dateFrom
+                    price >= record.get('Цена долларов в месяц')
             });
         } catch (exception) {
-            console.error(exception);
+            console.error(`issue detected ...\n${exception}`);
+            return [];
         }
     }
 }

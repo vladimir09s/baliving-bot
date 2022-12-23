@@ -21,7 +21,7 @@ export class TasksService {
         private readonly requestsService: RequestsService,
     ) {}
 
-    @Cron('0 */30 * * * *')
+    @Cron('0 * * * * *')
     handleCron() {
         this.logger.debug('Checking new properties');
         const bot = new TelegramBot(process.env.TOKEN);
@@ -30,19 +30,22 @@ export class TasksService {
                 if (user.requestId) {
                     this.requestsService.find(+user.requestId).then(request => {
                         if (request.areas && request.beds && request.price) {
-                            const updatedAt: Date = request.updatedAt;
-                            console.debug(updatedAt);
-                            Database.findNewProperties(request.areas, request.beds, request.price, updatedAt).then(properties => {
+                            const properties: any = request.properties ? request.properties : [];
+                            console.debug(properties);
+                            Database.findNewProperties(request.areas, request.beds, request.price, properties).then(newProperties => {
                                 let isSent: boolean = false;
-                                console.debug(properties);
-                                for (const property of properties) {
+                                console.debug(`new properties (${newProperties.length}) ...`);
+                                for (const property of newProperties) {
                                     if (this.isValidUrl(property.get('Телеграм ссылка'))) {
-                                        this.sendProperty(property, user, bot);
+                                        const id: any = this.sendProperty(property, user, bot);
+                                        if (id) {
+                                            properties.push(id);
+                                        }
                                         isSent = true;
                                     }
                                 }
                                 if (isSent) {
-                                    this.requestsService.update(request.id, {updatedAt: new Date()}).then(() => {
+                                    this.requestsService.update(request.id, { properties }).then(() => {
                                         bot.sendMessage(
                                             user.chatId,
                                             locales[DEFAULT_LOCALE].foundOptions,
@@ -86,8 +89,10 @@ export class TasksService {
                 template,
                 options
             );
+            return +property.get('Номер');
         } catch (exception) {
-            console.error(exception);
+            console.error(`issue detected ...\n${exception}`);
+            return null;
         }
     }
 

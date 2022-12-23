@@ -224,11 +224,16 @@ export default class CallbackHandler {
         console.log(request);
         const databaseProperties: any = await Database.findProperties(request.areas, request.beds, request.price);
         if (databaseProperties.length) {
+            const properties: number[] = [];
             for (const property of databaseProperties) {
                 if (this.isValidUrl(property.get('Телеграм ссылка'))) {
-                    await this.sendProperty(property, user);
+                    const id: any = await this.sendProperty(property, user);
+                    if (id) {
+                        properties.push(id);
+                    }
                 }
             }
+            await this.requestsService.update(request.id, { properties });
             await this.bot.sendMessage(
                 user.chatId,
                 locales[DEFAULT_LOCALE].foundOptions,
@@ -270,8 +275,10 @@ export default class CallbackHandler {
                 template,
                 options
             );
+            return +property.get('Номер');
         } catch (exception) {
-            console.error(exception);
+            console.error(`issue detected ...\n${exception}`);
+            return null;
         }
     }
 
@@ -329,7 +336,6 @@ export default class CallbackHandler {
                 user.chatId,
                 locales[DEFAULT_LOCALE].price
             );
-            console.log(`need to remove msg #${botMessage.message_id}`);
             await this.usersService.update(user.userId, user.chatId, { nextAction: `${ACTIONS[4].nextAction},delete-message:${botMessage.message_id}`});
         }
     }

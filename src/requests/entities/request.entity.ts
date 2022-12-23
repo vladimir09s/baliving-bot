@@ -26,6 +26,9 @@ export class Request {
     @Column({ 'name': 'beds', 'type': 'simple-array', 'default': null })
     beds: string;
 
+    @Column({ 'name': 'properties', 'type': 'simple-array', 'default': null })
+    properties: string;
+
     @Column({ 'name': 'price', 'default': null })
     price: number;
 
