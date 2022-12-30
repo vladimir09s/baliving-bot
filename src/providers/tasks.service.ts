@@ -19,7 +19,7 @@ export class TasksService {
         private readonly requestsService: RequestsService,
     ) {}
 
-    @Cron('0 * * * * *')
+    @Cron('0 */30 * * * *')
     handleCron() {
         console.debug('Checking new properties ...');
         const bot = new TelegramBot(process.env.TOKEN);
