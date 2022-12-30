@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const DEFAULT_LOCALE = 'ru';
 
-const CATALOG_URL = 'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=%D0%A0%D0%B0%D0%B9%D0%BE%D0%BD__eq__${areas}__and__%D0%9A%D0%BE%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%BE+%D1%81%D0%BF%D0%B0%D0%BB%D0%B5%D0%BD__eq__${beds}#!/tproduct/499852640-${id}';
+const CATALOG_URL = 'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=Popup__find__${id}';
 
 
 @Injectable()
@@ -38,8 +38,8 @@ export class TasksService {
                                         const id: any = this.sendProperty(property, user, bot);
                                         if (id) {
                                             properties.push(id);
+                                            isSent = true;
                                         }
-                                        isSent = true;
                                     }
                                 }
                                 if (isSent) {
@@ -78,8 +78,6 @@ export class TasksService {
             template = template.replace('${beds}', property.get('Количество спален'));
             template = template.replace('${price}', property.get('Цена долларов в месяц'));
             let link = CATALOG_URL;
-            link = link.replace('${areas}', property.get('Район'));
-            link = link.replace('${beds}', property.get('Количество спален'));
             link = link.replace('${id}', property.get('ad_id'));
             template = template.replace('${link}', `<a href="${link}">${locales[DEFAULT_LOCALE].link}</a>`);
             bot.sendMessage(
