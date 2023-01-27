@@ -29,33 +29,58 @@ export class TasksService {
                 if (user.requestId) {
                     Database.findUser(user.email).then((databaseUser) => {
                         if (databaseUser && databaseUser.get('Доступ действителен') === CHOSE) {
-                            this.requestsService.find(+user.requestId).then(request => {
-                                if (request.areas && request.beds && request.price) {
-                                    const properties: any = request.properties ? request.properties : [];
-                                    console.debug(properties);
-                                    Database.findNewProperties(request.areas, request.beds, request.price, properties).then(newProperties => {
-                                        let isSent: boolean = false;
-                                        console.debug(`new properties (${newProperties.length}) ...`);
-                                        for (const property of newProperties) {
-                                            if (this.isValidUrl(property.get('Телеграм ссылка'))) {
-                                                const id: any = this.sendProperty(property, user, bot);
-                                                if (id) {
-                                                    properties.push(id);
-                                                    isSent = true;
+                            if (databaseUser.get('Plan') === 'VIP') {
+                                this.requestsService.find(+user.requestId).then(request => {
+                                    if (request.areas && request.beds && request.price) {
+                                        const properties: any = request.properties ? request.properties : [];
+                                        console.debug(properties);
+                                        Database.findNewProperties(request.areas, request.beds, request.price, properties).then(newProperties => {
+                                            let isSent: boolean = false;
+                                            console.debug(`new properties (${newProperties.length}) ...`);
+                                            for (const property of newProperties) {
+                                                if (this.isValidUrl(property.get('Телеграм ссылка'))) {
+                                                    const id: any = this.sendProperty(property, user, bot);
+                                                    if (id) {
+                                                        properties.push(id);
+                                                        isSent = true;
+                                                    }
                                                 }
                                             }
-                                        }
-                                        if (isSent) {
-                                            this.requestsService.update(request.id, { properties }).then(() => {
-                                                bot.sendMessage(
-                                                    user.chatId,
-                                                    locales[DEFAULT_LOCALE].foundOptions,
-                                                );
-                                            })
-                                        }
-                                    })
+                                            if (isSent) {
+                                                this.requestsService.update(request.id, {properties}).then(() => {
+                                                    bot.sendMessage(
+                                                        user.chatId,
+                                                        locales[DEFAULT_LOCALE].foundOptions,
+                                                    );
+                                                })
+                                            }
+                                        })
+                                    }
+                                })
+                            } else {
+                                const options: any = {
+                                    reply_markup: {
+                                        inline_keyboard: [
+                                            [{
+                                                text: locales[DEFAULT_LOCALE].goToWebsite,
+                                                switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                                                url: 'https://baliving.ru/tariffs'
+                                            }],
+                                            [{
+                                                text: locales[DEFAULT_LOCALE].writeToSupport,
+                                                switch_inline_query: locales[DEFAULT_LOCALE].writeToSupport,
+                                                url: 'https://t.me/info_baliving'
+                                            }],
+                                            [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                                        ]
+                                    }
                                 }
-                            })
+                                bot.sendMessage(
+                                    user.chatId,
+                                    locales[DEFAULT_LOCALE].expired,
+                                    options
+                                );
+                            }
                         } else {
                             const options: any = {
                                 reply_markup: {
@@ -73,10 +98,7 @@ export class TasksService {
                                 user.chatId,
                                 locales[DEFAULT_LOCALE].expired,
                                 options,
-                            ).then(() => {
-                                this.usersService.delete(user.userId)
-                                    .then(response => console.debug(response));
-                            });
+                            );
                         }
                     });
                 }
