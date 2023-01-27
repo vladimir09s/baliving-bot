@@ -194,11 +194,24 @@ export default class CallbackHandler {
             locales[DEFAULT_LOCALE].checking,
         );
         const databaseUser: any = await Database.findUser(user.email);
+        const options: any = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{
+                        text: locales[DEFAULT_LOCALE].goToWebsite,
+                        switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                        url: 'https://baliving.ru/tariffs'
+                    }],
+                    [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                ]
+            }
+        }
         if (!databaseUser) {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
             await this.bot.sendMessage(
                 user.chatId,
                 locales[DEFAULT_LOCALE].notFound,
+                options,
             );
             return false;
         } else if (databaseUser.get('Доступ действителен') === CHOSE) {
@@ -208,6 +221,7 @@ export default class CallbackHandler {
             await this.bot.sendMessage(
                 user.chatId,
                 locales[DEFAULT_LOCALE].expired,
+                options,
             );
             return false;
         }

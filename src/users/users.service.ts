@@ -32,4 +32,8 @@ export class UsersService {
     const user: User = await this.findOne(userId, chatId);
     return await this.usersRepository.save({ ...user, ...attributes });
   }
+
+  async delete(userId: number) {
+    return await this.usersRepository.delete({ userId });
+  }
 }
