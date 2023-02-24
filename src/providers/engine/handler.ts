@@ -2,6 +2,7 @@ import { UsersService } from '../../users/users.service';
 import { RequestsService } from "../../requests/requests.service";
 import CallbackHandler from "./callback-handler";
 import MessageHandler from "./message-handler";
+import {FetchService} from "nestjs-fetch";
 
 export default class Handler {
     private readonly callbackHandler: CallbackHandler;
@@ -10,9 +11,10 @@ export default class Handler {
     constructor(
         usersService: UsersService,
         requestsService: RequestsService,
-        protected readonly bot
+        protected readonly bot,
+        fetch: FetchService,
     ) {
-        this.callbackHandler = new CallbackHandler(usersService, requestsService, bot);
+        this.callbackHandler = new CallbackHandler(usersService, requestsService, bot, fetch);
         this.messageHandler = new MessageHandler(usersService, requestsService, bot);
     }
 

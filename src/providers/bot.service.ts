@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import Handler from "./engine/handler";
 import {UsersService} from "../users/users.service";
 import {RequestsService} from "../requests/requests.service";
+import { FetchService } from 'nestjs-fetch';
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
@@ -10,9 +11,13 @@ const BOT_CHAT_TYPE: string = 'private';
 @Injectable()
 export class BotService extends Handler implements OnModuleInit {
 
-  constructor(usersService: UsersService, requestsService: RequestsService) {
+  constructor(
+      usersService: UsersService,
+      requestsService: RequestsService,
+      fetch: FetchService
+  ) {
     const bot = new TelegramBot(process.env.TOKEN, { polling: true });
-    super(usersService, requestsService, bot);
+    super(usersService, requestsService, bot, fetch);
   }
 
   onModuleInit() {

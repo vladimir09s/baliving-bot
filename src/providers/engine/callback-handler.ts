@@ -5,10 +5,12 @@ import Database from "./database";
 import areas from "../../config/areas";
 import beds from "../../config/beds";
 import { RequestsService } from "../../requests/requests.service";
+import {FetchService} from "nestjs-fetch";
 
 const DEFAULT_LOCALE = 'ru';
 
 const CHOSE = '✅';
+const TRIAL = 'TRIAL';
 
 const FINISH = 'finish';
 const START_SEARCH = 'start-search';
@@ -36,7 +38,8 @@ export default class CallbackHandler {
     constructor(
         private readonly usersService: UsersService,
         private readonly requestsService: RequestsService,
-        private readonly bot
+        private readonly bot,
+        private readonly fetch: FetchService,
     ) {}
 
     async handle(chatId, userId, messageId, data, keyboard) {
@@ -214,7 +217,12 @@ export default class CallbackHandler {
                 options,
             );
             return false;
-        } else if (databaseUser.get('Доступ действителен') === CHOSE) {
+        } else if (databaseUser.get('Доступ действителен') === CHOSE && (
+            databaseUser.get('TRIAL') === TRIAL || databaseUser.get('Plan') === 'VIP'
+        )) {
+            await this.usersService.update(user.userId, user.chatId, {
+                isTrial: databaseUser.get('TRIAL') === TRIAL
+            });
             return true;
         } else {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
@@ -266,16 +274,19 @@ export default class CallbackHandler {
 
     async sendProperty(property, user) {
         try {
-            const options: any = {
-                reply_markup: {
+            let options: any = {
+                parse_mode: 'html'
+            };
+            if (!user.isTrial) {
+                options.reply_markup = {
                     inline_keyboard: [[{
                         text: locales[DEFAULT_LOCALE].write,
                         switch_inline_query: locales[DEFAULT_LOCALE].write,
                         url: property.get('Телеграм ссылка')
                     }]]
-                },
-                parse_mode: 'html'
+                };
             }
+
             let template: string = locales[DEFAULT_LOCALE].finalMessage;
             if (property.get('Заголовок')) {
                 template = `${property.get('Заголовок')}\n${template}`;
@@ -286,11 +297,37 @@ export default class CallbackHandler {
             let link = CATALOG_URL;
             link = link.replace('${id}', property.get('ad_id'));
             template = template.replace('${link}', `<a href="${link}">${locales[DEFAULT_LOCALE].link}</a>`);
+
             await this.bot.sendMessage(
                 user.chatId,
                 template,
                 options
             );
+
+            if (property.get('Фото') && Array.isArray(property.get('Фото'))) {
+                console.debug('Photo is processing...');
+                let media: any = [];
+                const images = property.get('Фото').map(image => image.thumbnails.large.url);
+                for (const url of images) {
+                    const i = images.indexOf(url);
+                    if (i < 3) { // limit = 3
+                        const response = await this.fetch.get(url);
+                        const buffer = await response.arrayBuffer();
+                        media.push({
+                            type: 'photo',
+                            media: {source: Buffer.from(buffer), filename: `image_${i}.jpg` }
+                        });
+                    }
+                }
+                if (media.length) {
+                    for (const item of media) {
+                        await this.bot.sendPhoto(user.chatId, item.media.source, {
+                            parse_mode: 'markdown',
+                        });
+                    }
+                }
+            }
+
             return +property.get('Номер');
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`);

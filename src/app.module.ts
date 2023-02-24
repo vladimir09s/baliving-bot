@@ -7,11 +7,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RequestsService } from "./requests/requests.service";
 import { ScheduleModule } from '@nestjs/schedule';
 import { TasksService } from "./providers/tasks.service";
+import { FetchModule } from 'nestjs-fetch';
 
 
 
 @Module({
   imports: [
+    FetchModule,
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',

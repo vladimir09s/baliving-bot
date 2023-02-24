@@ -11,6 +11,7 @@ const EDIT_COMMAND: string = '/edit';
 const DEFAULT_LOCALE = 'ru';
 
 const CHOSE = '✅';
+const TRIAL = 'TRIAL';
 
 const ACTIONS = {
     0: { currentAction: 'ask-email', nextAction: 'read-email' },
@@ -154,8 +155,11 @@ export default class MessageHandler {
                 options
             );
         } else if (databaseUser.get('Доступ действителен') === CHOSE) {
-            if (databaseUser.get('Plan') === 'VIP') {
-                await this.usersService.update(user.userId, user.chatId, ACTIONS[2]);
+            if (databaseUser.get('Plan') === 'VIP' || databaseUser.get('TRIAL') === TRIAL) {
+                await this.usersService.update(user.userId, user.chatId, {
+                    ...ACTIONS[2],
+                    isTrial: databaseUser.get('TRIAL') === TRIAL
+                });
                 let keyboard: any = [];
                 areas.forEach(area => {
                     keyboard.push({text: `${area}`, callback_data: `read-areas ${area}` })
