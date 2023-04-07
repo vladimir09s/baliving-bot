@@ -217,9 +217,11 @@ export default class CallbackHandler {
                 options,
             );
             return false;
-        } else if (databaseUser.get('Доступ действителен') === CHOSE && (
-            databaseUser.get('TRIAL') === TRIAL || databaseUser.get('Plan') === 'VIP'
-        )) {
+        } else if (
+            databaseUser.get('Доступ действителен') === CHOSE &&
+            databaseUser.get('Plan') === 'VIP' ||
+            databaseUser.get('TRIAL') === TRIAL
+        ) {
             await this.usersService.update(user.userId, user.chatId, {
                 isTrial: databaseUser.get('TRIAL') === TRIAL
             });

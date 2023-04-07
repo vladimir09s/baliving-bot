@@ -23,7 +23,7 @@ export class TasksService {
         private readonly fetch: FetchService
     ) {}
 
-    @Cron('0 */30 * * * *')
+    @Cron('0 0 * * * *')
     handleCron() {
         console.debug('Checking new properties ...');
         const bot = new TelegramBot(process.env.TOKEN);
@@ -31,7 +31,12 @@ export class TasksService {
             users.forEach(user => {
                 if (user.requestId) {
                     Database.findUser(user.email).then((databaseUser) => {
-                        if (databaseUser && databaseUser.get('Доступ действителен') === CHOSE) {
+                        if (
+                            databaseUser && (
+                                databaseUser.get('Доступ действителен') === CHOSE ||
+                                databaseUser.get('TRIAL') === TRIAL
+                            )
+                        ) {
                             if (databaseUser.get('TRIAL') === TRIAL) {
                                 this.handleActiveUser(bot, user, true);
                             } else if (databaseUser.get('Plan') === 'VIP') {

@@ -154,7 +154,7 @@ export default class MessageHandler {
                 locales[DEFAULT_LOCALE].notFound,
                 options
             );
-        } else if (databaseUser.get('Доступ действителен') === CHOSE) {
+        } else if (databaseUser.get('Доступ действителен') === CHOSE || databaseUser.get('TRIAL') === TRIAL) {
             if (databaseUser.get('Plan') === 'VIP' || databaseUser.get('TRIAL') === TRIAL) {
                 await this.usersService.update(user.userId, user.chatId, {
                     ...ACTIONS[2],
