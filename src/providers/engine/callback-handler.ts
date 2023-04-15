@@ -7,8 +7,6 @@ import beds from "../../config/beds";
 import { RequestsService } from "../../requests/requests.service";
 import {FetchService} from "nestjs-fetch";
 
-const DEFAULT_LOCALE = 'ru';
-
 const CHOSE = '✅';
 const TRIAL = 'TRIAL';
 
@@ -47,7 +45,7 @@ export default class CallbackHandler {
         console.debug(user);
         try {
             if (data === 'start') {
-                await this.handleStartMessage(chatId, userId);
+                await this.handleStartMessage(chatId, userId, user);
             } else if (user.nextAction === 'read-areas') {
                 if (data === FINISH) {
                     await this.handleFinishAreaMessage(messageId, user, keyboard);
@@ -101,11 +99,11 @@ export default class CallbackHandler {
         }
     }
 
-    async handleStartMessage(chatId, userId) {
+    async handleStartMessage(chatId, userId, user) {
         await this.usersService.update(userId, chatId, { ...ACTIONS[0], requestId: null });
         await this.bot.sendMessage(
             chatId,
-            locales[DEFAULT_LOCALE].start,
+            locales[user.locale].start,
         );
     }
 
@@ -114,8 +112,18 @@ export default class CallbackHandler {
         await this.usersService.update(user.userId, user.chatId, ACTIONS[7]);
         let keyboard: any = [];
         let hasChosenItems = false;
-        areas.forEach(area => {
-            const text = request.areas && request.areas.includes(area) ? `${CHOSE} ${area}` : `${area}`;
+        areas[user.locale].forEach(area => {
+            let requestAreas: any = [];
+            if (request.areas) {
+                if (user.locale === 'en') {
+                    request.areas.forEach(area => {
+                        requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+                    });
+                } else {
+                    requestAreas = request.areas;
+                }
+            }
+            const text = requestAreas.includes(area) ? `${CHOSE} ${area}` : `${area}`;
             keyboard.push({text, callback_data: `read-areas ${area}` })
             if (text[0] === CHOSE) {
                 hasChosenItems = true;
@@ -126,9 +134,9 @@ export default class CallbackHandler {
         rows.forEach(row => {
             inlineKeyboard.push(row);
         })
-        if (keyboard.length === areas.length && hasChosenItems) {
-            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
-        } else if (!hasChosenItems && keyboard.length > areas.length) {
+        if (keyboard.length === areas[user.locale].length && hasChosenItems) {
+            inlineKeyboard.push([{ text: locales[user.locale].next, callback_data: FINISH }])
+        } else if (!hasChosenItems && keyboard.length > areas[user.locale].length) {
             inlineKeyboard.pop();
         }
         const options: any = {
@@ -138,7 +146,7 @@ export default class CallbackHandler {
         }
         await this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].chooseAreas,
+            locales[user.locale].chooseAreas,
             options
         );
     }
@@ -161,7 +169,7 @@ export default class CallbackHandler {
             inlineKeyboard.push(row);
         })
         if (keyboard.length === beds.length && hasChosenItems) {
-            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+            inlineKeyboard.push([{ text: locales[user.locale].next, callback_data: FINISH }])
         } else if (!hasChosenItems && keyboard.length > beds.length) {
             inlineKeyboard.pop();
         }
@@ -172,7 +180,7 @@ export default class CallbackHandler {
         }
         await this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].numberOfBeds,
+            locales[user.locale].numberOfBeds,
             options
         );
     }
@@ -182,7 +190,7 @@ export default class CallbackHandler {
         await this.usersService.update(user.userId, user.chatId, ACTIONS[9]);
         const botMessage = await this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].price
+            locales[user.locale].price
         );
         await this.usersService.update(
             user.userId,
@@ -194,18 +202,18 @@ export default class CallbackHandler {
     async isValidUser(user) {
         this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].checking,
+            locales[user.locale].checking,
         );
         const databaseUser: any = await Database.findUser(user.email);
         const options: any = {
             reply_markup: {
                 inline_keyboard: [
                     [{
-                        text: locales[DEFAULT_LOCALE].goToWebsite,
-                        switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                        text: locales[user.locale].goToWebsite,
+                        switch_inline_query: locales[user.locale].goToWebsite,
                         url: 'https://baliving.ru/tariffs'
                     }],
-                    [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                    [{text: `${locales[user.locale].writeAnotherEmail}`, callback_data: `start` }]
                 ]
             }
         }
@@ -213,7 +221,7 @@ export default class CallbackHandler {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].notFound,
+                locales[user.locale].notFound,
                 options,
             );
             return false;
@@ -230,7 +238,7 @@ export default class CallbackHandler {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[1]);
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].expired,
+                locales[user.locale].expired,
                 options,
             );
             return false;
@@ -242,7 +250,7 @@ export default class CallbackHandler {
         await this.usersService.update(user.userId, user.chatId, ACTIONS[6]);
         await this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].checking,
+            locales[user.locale].checking,
         );
         const request: any = await this.requestsService.find(+user.requestId);
         console.log(request);
@@ -263,13 +271,13 @@ export default class CallbackHandler {
                 await this.requestsService.update(request.id, { properties });
                 await this.bot.sendMessage(
                     user.chatId,
-                    locales[DEFAULT_LOCALE].foundOptions,
+                    locales[user.locale].foundOptions,
                 );
             }
         } else {
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].notFoundOptions,
+                locales[user.locale].notFoundOptions,
             );
         }
     }
@@ -282,23 +290,31 @@ export default class CallbackHandler {
             if (!user.isTrial) {
                 options.reply_markup = {
                     inline_keyboard: [[{
-                        text: locales[DEFAULT_LOCALE].write,
-                        switch_inline_query: locales[DEFAULT_LOCALE].write,
+                        text: locales[user.locale].write,
+                        switch_inline_query: locales[user.locale].write,
                         url: property.get('Телеграм ссылка')
                     }]]
                 };
             }
 
-            let template: string = locales[DEFAULT_LOCALE].finalMessage;
-            if (property.get('Заголовок')) {
+            let template: string = locales[user.locale].finalMessage;
+            if (property.get('Заголовок') && user.locale === 'ru') {
                 template = `${property.get('Заголовок')}\n${template}`;
+            } else if (property.get('Title eng') && user.locale === 'en') {
+                template = `${property.get('Title eng')}\n${template}`;
             }
-            template = template.replace('${areas}', property.get('Район'));
+            let templateArea: string = '';
+            if (user.locale === 'ru') {
+                templateArea = property.get('Район');
+            } else if (user.locale === 'en') {
+                templateArea = property.get('District');
+            }
+            template = template.replace('${areas}', templateArea);
             template = template.replace('${beds}', property.get('Количество спален'));
             template = template.replace('${price}', property.get('Цена долларов в месяц'));
             let link = CATALOG_URL;
             link = link.replace('${id}', property.get('ad_id'));
-            template = template.replace('${link}', `<a href="${link}">${locales[DEFAULT_LOCALE].link}</a>`);
+            template = template.replace('${link}', `<a href="${link}">${locales[user.locale].link}</a>`);
 
             await this.bot.sendMessage(
                 user.chatId,
@@ -367,18 +383,26 @@ export default class CallbackHandler {
         if (isEdit) {
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].finish,
+                locales[user.locale].finish,
                 { parse_mode: 'html' }
             );
             const options: any = {
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: locales[DEFAULT_LOCALE].agree, callback_data: 'start-search' }],
+                        [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
                     ]
                 }
             }
-            let template: string = locales[DEFAULT_LOCALE].details;
-            template = template.replace('${areas}', request.areas.join(','));
+            let template: string = locales[user.locale].details;
+            let requestAreas: any = [];
+            if (user.locale === 'en') {
+                request.areas.forEach(area => {
+                    requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+                });
+            } else {
+                requestAreas = request.areas;
+            }
+            template = template.replace('${areas}', requestAreas.join(','));
             template = template.replace('${beds}', request.beds.join(','));
             template = template.replace('${price}', request.price);
             await this.bot.sendMessage(
@@ -389,7 +413,7 @@ export default class CallbackHandler {
         } else {
             const botMessage = await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].price
+                locales[user.locale].price
             );
             await this.usersService.update(user.userId, user.chatId, { nextAction: `${ACTIONS[4].nextAction},delete-message:${botMessage.message_id}`});
         }
@@ -404,7 +428,7 @@ export default class CallbackHandler {
         } else {
             await this.usersService.update(user.userId, user.chatId, actionData);
         }
-        let areas = [];
+        let userAreas: any = [];
         const keyboardItems: any = [];
         keyboardAreas.forEach(subKeyboard => {
             subKeyboard.forEach(subKeyboardItem => {
@@ -413,25 +437,38 @@ export default class CallbackHandler {
         })
         keyboardItems.forEach(keyboardArea => {
             if (keyboardArea.text[0] === CHOSE) {
-                areas.push(keyboardArea.text.substring(2));
+                const areaItem: string = keyboardArea.text.substring(2);
+                if (user.locale === 'en') {
+                    userAreas.push(areas['ru'][areas[user.locale].indexOf(areaItem)])
+                } else {
+                    userAreas.push(areaItem);
+                }
             }
         });
-        const request: any = await this.requestsService.update(+user.requestId, { areas });
+        const request: any = await this.requestsService.update(+user.requestId, { areas: userAreas });
         if (isEdit) {
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].finish,
+                locales[user.locale].finish,
                 { parse_mode: 'html' }
             );
             const options: any = {
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: locales[DEFAULT_LOCALE].agree, callback_data: 'start-search' }],
+                        [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
                     ]
                 }
             }
-            let template: string = locales[DEFAULT_LOCALE].details;
-            template = template.replace('${areas}', request.areas.join(','));
+            let template: string = locales[user.locale].details;
+            let requestAreas: any = [];
+            if (user.locale === 'en') {
+                request.areas.forEach(area => {
+                    requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+                });
+            } else {
+                requestAreas = request.areas;
+            }
+            template = template.replace('${areas}', requestAreas.join(','));
             template = template.replace('${beds}', request.beds.join(','));
             template = template.replace('${price}', request.price);
             await this.bot.sendMessage(
@@ -456,7 +493,7 @@ export default class CallbackHandler {
             }
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].numberOfBeds,
+                locales[user.locale].numberOfBeds,
                 options
             );
         }
@@ -501,7 +538,7 @@ export default class CallbackHandler {
             inlineKeyboard.push(row);
         })
         if (keyboardItems.length === beds.length && hasChosenItems) {
-            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
+            inlineKeyboard.push([{ text: locales[user.locale].next, callback_data: FINISH }])
         } else if (!hasChosenItems && keyboardItems.length > beds.length) {
             inlineKeyboard.pop();
         }
@@ -513,7 +550,7 @@ export default class CallbackHandler {
         }
         await this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].chooseAreas,
+            locales[user.locale].chooseAreas,
             options
         );
     }
@@ -566,9 +603,9 @@ export default class CallbackHandler {
         rows.forEach(row => {
             inlineKeyboard.push(row);
         })
-        if (keyboardItems.length === areas.length && hasChosenItems) {
-            inlineKeyboard.push([{ text: locales[DEFAULT_LOCALE].next, callback_data: FINISH }])
-        } else if (!hasChosenItems && keyboardItems.length > areas.length) {
+        if (keyboardItems.length === areas[user.locale].length && hasChosenItems) {
+            inlineKeyboard.push([{ text: locales[user.locale].next, callback_data: FINISH }]);
+        } else if (!hasChosenItems && keyboardItems.length > areas[user.locale].length) {
             inlineKeyboard.pop();
         }
         await this.bot.deleteMessage(user.chatId, messageId);
@@ -579,7 +616,7 @@ export default class CallbackHandler {
         }
         await this.bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].chooseAreas,
+            locales[user.locale].chooseAreas,
             options
         );
     }

@@ -35,6 +35,9 @@ export class User {
     @Column({ 'name': 'is_trial', 'default': false })
     isTrial: boolean;
 
+    @Column({ 'name': 'locale', 'default': 'ru' })
+    locale: string;
+
     @Column({ 'name': 'request_id', 'type': 'bigint', 'default': null })
     requestId: number;
 

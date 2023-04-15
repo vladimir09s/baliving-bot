@@ -8,8 +8,6 @@ import {FetchService} from "nestjs-fetch";
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
-const DEFAULT_LOCALE = 'ru';
-
 const CATALOG_URL = 'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=Popup__find__${id}';
 
 const CHOSE = '✅';
@@ -74,7 +72,7 @@ export class TasksService {
                         this.requestsService.update(request.id, {properties}).then(() => {
                             bot.sendMessage(
                                 user.chatId,
-                                locales[DEFAULT_LOCALE].foundOptions,
+                                locales[user.locale].foundOptions,
                             );
                         })
                     }
@@ -88,22 +86,22 @@ export class TasksService {
             reply_markup: {
                 inline_keyboard: [
                     [{
-                        text: locales[DEFAULT_LOCALE].goToWebsite,
-                        switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                        text: locales[user.locale].goToWebsite,
+                        switch_inline_query: locales[user.locale].goToWebsite,
                         url: 'https://baliving.ru/tariffs'
                     }],
                     [{
-                        text: locales[DEFAULT_LOCALE].writeToSupport,
-                        switch_inline_query: locales[DEFAULT_LOCALE].writeToSupport,
+                        text: locales[user.locale].writeToSupport,
+                        switch_inline_query: locales[user.locale].writeToSupport,
                         url: 'https://t.me/info_baliving'
                     }],
-                    [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                    [{text: `${locales[user.locale].writeAnotherEmail}`, callback_data: `start` }]
                 ]
             }
         }
         bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].expired,
+            locales[user.locale].expired,
             options
         ).then(() => {
             this.usersService.delete(user.userId)
@@ -116,17 +114,17 @@ export class TasksService {
             reply_markup: {
                 inline_keyboard: [
                     [{
-                        text: locales[DEFAULT_LOCALE].goToWebsite,
-                        switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                        text: locales[user.locale].goToWebsite,
+                        switch_inline_query: locales[user.locale].goToWebsite,
                         url: 'https://baliving.ru/tariffs'
                     }],
-                    [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                    [{text: `${locales[user.locale].writeAnotherEmail}`, callback_data: `start` }]
                 ]
             }
         }
         bot.sendMessage(
             user.chatId,
-            locales[DEFAULT_LOCALE].expired,
+            locales[user.locale].expired,
             options,
         ).then(() => {
             this.usersService.delete(user.userId)
@@ -142,22 +140,30 @@ export class TasksService {
             if (!isTrial) {
                 options.reply_markup = {
                     inline_keyboard: [[{
-                        text: locales[DEFAULT_LOCALE].write,
-                        switch_inline_query: locales[DEFAULT_LOCALE].write,
+                        text: locales[user.locale].write,
+                        switch_inline_query: locales[user.locale].write,
                         url: property.get('Телеграм ссылка')
                     }]]
                 };
             }
-            let template: string = locales[DEFAULT_LOCALE].finalMessage;
-            if (property.get('Заголовок')) {
+            let template: string = locales[user.locale].finalMessage;
+            if (property.get('Заголовок') && user.locale === 'ru') {
                 template = `${property.get('Заголовок')}\n${template}`;
+            } else if (property.get('Title eng') && user.locale === 'en') {
+                template = `${property.get('Title eng')}\n${template}`;
             }
-            template = template.replace('${areas}', property.get('Район'));
+            let templateArea: string = '';
+            if (user.locale === 'ru') {
+                templateArea = property.get('Район');
+            } else if (user.locale === 'en') {
+                templateArea = property.get('District');
+            }
+            template = template.replace('${areas}', templateArea);
             template = template.replace('${beds}', property.get('Количество спален'));
             template = template.replace('${price}', property.get('Цена долларов в месяц'));
             let link = CATALOG_URL;
             link = link.replace('${id}', property.get('ad_id'));
-            template = template.replace('${link}', `<a href="${link}">${locales[DEFAULT_LOCALE].link}</a>`);
+            template = template.replace('${link}', `<a href="${link}">${locales[user.locale].link}</a>`);
             await bot.sendMessage(
                 user.chatId,
                 template,

@@ -8,8 +8,6 @@ import { RequestsService } from "../../requests/requests.service";
 const START_COMMAND: string = '/start';
 const EDIT_COMMAND: string = '/edit';
 
-const DEFAULT_LOCALE = 'ru';
-
 const CHOSE = '✅';
 const TRIAL = 'TRIAL';
 
@@ -53,18 +51,21 @@ export default class MessageHandler {
     }
 
     async handleEditMessage(message) {
+        const chatId: number = message.chat.id;
+        const userId: number = message.from.id;
+        const user: User = await this.usersService.findOne(userId, chatId);
         const options: any = {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: locales[DEFAULT_LOCALE].editAreas, callback_data: 'edit-areas' }],
-                    [{ text: locales[DEFAULT_LOCALE].editBeds, callback_data: 'edit-beds' }],
-                    [{ text: locales[DEFAULT_LOCALE].editPrice, callback_data: 'edit-price' }],
+                    [{ text: locales[user.locale].editAreas, callback_data: 'edit-areas' }],
+                    [{ text: locales[user.locale].editBeds, callback_data: 'edit-beds' }],
+                    [{ text: locales[user.locale].editPrice, callback_data: 'edit-price' }],
                 ]
             }
         }
         await this.bot.sendMessage(
             message.chat.id,
-            locales[DEFAULT_LOCALE].choseEditOption,
+            locales[user.locale].choseEditOption,
             options
         );
     }
@@ -75,7 +76,7 @@ export default class MessageHandler {
         if (Number.isNaN(price)) {
             await this.bot.sendMessage(
                 user.chatId,
-                locales[DEFAULT_LOCALE].price
+                locales[user.locale].price
             );
         } else {
             console.debug(message);
@@ -87,19 +88,27 @@ export default class MessageHandler {
             await this.usersService.update(user.userId, user.chatId, ACTIONS[5]);
             await this.bot.sendMessage(
                 message.chat.id,
-                locales[DEFAULT_LOCALE].finish,
+                locales[user.locale].finish,
                 { parse_mode: 'html' }
             );
             const options: any = {
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: locales[DEFAULT_LOCALE].agree, callback_data: 'start-search' }],
+                        [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
                     ]
                 }
             }
-            let template: string = locales[DEFAULT_LOCALE].details;
+            let template: string = locales[user.locale].details;
             console.debug(request);
-            template = template.replace('${areas}', request.areas.join(','));
+            let requestAreas: any = [];
+            if (user.locale === 'en') {
+                request.areas.forEach(area => {
+                    requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+                });
+            } else {
+                requestAreas = request.areas;
+            }
+            template = template.replace('${areas}', requestAreas.join(','));
             template = template.replace('${beds}', request.beds.join(','));
             template = template.replace('${price}', request.price);
             await this.bot.sendMessage(
@@ -114,7 +123,7 @@ export default class MessageHandler {
         await this.usersService.update(user.userId, user.chatId, { ...ACTIONS[0], requestId: null });
         await this.bot.sendMessage(
             message.chat.id,
-            locales[DEFAULT_LOCALE].start,
+            locales[user.locale].start,
         );
     }
 
@@ -132,7 +141,7 @@ export default class MessageHandler {
         await this.usersService.update(user.userId, user.chatId, { email });
         await this.bot.sendMessage(
             message.chat.id,
-            locales[DEFAULT_LOCALE].checking,
+            locales[user.locale].checking,
         );
         const databaseUser: any = await Database.findUser(email);
         if (!databaseUser) {
@@ -141,17 +150,17 @@ export default class MessageHandler {
                 reply_markup: {
                     inline_keyboard: [
                         [{
-                            text: locales[DEFAULT_LOCALE].goToWebsite,
-                            switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                            text: locales[user.locale].goToWebsite,
+                            switch_inline_query: locales[user.locale].goToWebsite,
                             url: 'https://baliving.ru/tariffs'
                         }],
-                        [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                        [{text: `${locales[user.locale].writeAnotherEmail}`, callback_data: `start` }]
                     ]
                 }
             }
             await this.bot.sendMessage(
                 message.chat.id,
-                locales[DEFAULT_LOCALE].notFound,
+                locales[user.locale].notFound,
                 options
             );
         } else if (databaseUser.get('Доступ действителен') === CHOSE || databaseUser.get('TRIAL') === TRIAL) {
@@ -161,7 +170,7 @@ export default class MessageHandler {
                     isTrial: databaseUser.get('TRIAL') === TRIAL
                 });
                 let keyboard: any = [];
-                areas.forEach(area => {
+                areas[user.locale].forEach(area => {
                     keyboard.push({text: `${area}`, callback_data: `read-areas ${area}` })
                 });
                 const inlineKeyboard: any = [];
@@ -176,7 +185,7 @@ export default class MessageHandler {
                 }
                 await this.bot.sendMessage(
                     message.chat.id,
-                    locales[DEFAULT_LOCALE].chooseAreas,
+                    locales[user.locale].chooseAreas,
                     options
                 );
             } else {
@@ -185,22 +194,22 @@ export default class MessageHandler {
                     reply_markup: {
                         inline_keyboard: [
                             [{
-                                text: locales[DEFAULT_LOCALE].goToWebsite,
-                                switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                                text: locales[user.locale].goToWebsite,
+                                switch_inline_query: locales[user.locale].goToWebsite,
                                 url: 'https://baliving.ru/tariffs'
                             }],
                             [{
-                                text: locales[DEFAULT_LOCALE].writeToSupport,
-                                switch_inline_query: locales[DEFAULT_LOCALE].writeToSupport,
+                                text: locales[user.locale].writeToSupport,
+                                switch_inline_query: locales[user.locale].writeToSupport,
                                 url: 'https://t.me/info_baliving'
                             }],
-                            [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                            [{text: `${locales[user.locale].writeAnotherEmail}`, callback_data: `start` }]
                         ]
                     }
                 }
                 await this.bot.sendMessage(
                     message.chat.id,
-                    locales[DEFAULT_LOCALE].expired,
+                    locales[user.locale].expired,
                     options
                 );
             }
@@ -210,17 +219,17 @@ export default class MessageHandler {
                 reply_markup: {
                     inline_keyboard: [
                         [{
-                            text: locales[DEFAULT_LOCALE].goToWebsite,
-                            switch_inline_query: locales[DEFAULT_LOCALE].goToWebsite,
+                            text: locales[user.locale].goToWebsite,
+                            switch_inline_query: locales[user.locale].goToWebsite,
                             url: 'https://baliving.ru/tariffs'
                         }],
-                        [{text: `${locales[DEFAULT_LOCALE].writeAnotherEmail}`, callback_data: `start` }]
+                        [{text: `${locales[user.locale].writeAnotherEmail}`, callback_data: `start` }]
                     ]
                 }
             }
             await this.bot.sendMessage(
                 message.chat.id,
-                locales[DEFAULT_LOCALE].expired,
+                locales[user.locale].expired,
                 options
             );
         }
