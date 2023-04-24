@@ -44,8 +44,10 @@ export default class CallbackHandler {
         const user: User = await this.usersService.findOne(userId, chatId);
         console.debug(user);
         try {
-            if (data === 'start') {
-                await this.handleStartMessage(chatId, userId, user);
+            if (['choose-locale:ru', 'choose-locale:en'].includes(data)) {
+                await this.handleLocaleMessage(chatId, userId, messageId, data, user);
+            } else if (data === 'start') {
+                await this.handleEmailMessage(chatId, userId, user);
             } else if (user.nextAction === 'read-areas') {
                 if (data === FINISH) {
                     await this.handleFinishAreaMessage(messageId, user, keyboard);
@@ -99,7 +101,14 @@ export default class CallbackHandler {
         }
     }
 
-    async handleStartMessage(chatId, userId, user) {
+    async handleLocaleMessage(chatId, userId, messageId, data, user) {
+        const locale: string = data === 'choose-locale:ru' ? 'ru' : 'en';
+        user = await this.usersService.update(userId, chatId, { locale });
+        await this.bot.deleteMessage(chatId, messageId);
+        await this.handleEmailMessage(chatId, userId, user);
+    }
+
+    async handleEmailMessage(chatId, userId, user) {
         await this.usersService.update(userId, chatId, { ...ACTIONS[0], requestId: null });
         await this.bot.sendMessage(
             chatId,

@@ -12,6 +12,7 @@ const CHOSE = '✅';
 const TRIAL = 'TRIAL';
 
 const ACTIONS = {
+    10: { currentAction: 'ask-locale', nextAction: 'read-locale' },
     0: { currentAction: 'ask-email', nextAction: 'read-email' },
     1: { currentAction: 'waiting-for-reply', nextAction: null },
     2: { currentAction: 'waiting-for-reply', nextAction: 'read-areas' },
@@ -35,7 +36,7 @@ export default class MessageHandler {
         console.debug(message);
         try {
             if (message.text.toString() === START_COMMAND) {
-                await this.handleStartMessage(message, user);
+                await this.handleLocaleMessage(message, user);
             } else if (user.nextAction && user.nextAction === 'read-email') {
                 await this.handleEmailMessage(message, user);
             } else if (user.nextAction && (
@@ -48,6 +49,22 @@ export default class MessageHandler {
         } catch (exception) {
             console.error(exception);
         }
+    }
+
+    async handleLocaleMessage(message, user) {
+        await this.usersService.update(user.userId, user.chatId, { ...ACTIONS[10], requestId: null });
+        await this.bot.sendMessage(
+            message.chat.id,
+            locales.askLocale,
+            {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: locales.ru.language, callback_data: 'choose-locale:ru' }],
+                        [{ text: locales.en.language, callback_data: 'choose-locale:en' }],
+                    ]
+                }
+            }
+        );
     }
 
     async handleEditMessage(message) {
