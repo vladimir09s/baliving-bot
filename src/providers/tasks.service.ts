@@ -56,7 +56,7 @@ export class TasksService {
             if (request.areas && request.beds && request.price) {
                 const properties: any = request.properties ? request.properties : [];
                 console.debug(properties);
-                Database.findNewProperties(request.areas, request.beds, request.price, properties).then(async (newProperties) => {
+                Database.findNewProperties(request.areas, request.beds, request.minPrice, request.price, properties).then(async (newProperties) => {
                     let isSent: boolean = false;
                     console.debug(`new properties (${newProperties.length}) ...`);
                     for (const property of newProperties) {

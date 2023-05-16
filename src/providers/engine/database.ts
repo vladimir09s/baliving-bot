@@ -16,7 +16,7 @@ export default class Database {
         }
     }
 
-    static async findProperties(areas, beds, price) {
+    static async findProperties(areas, beds, minPrice, price) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
         try {
             const records = await airtable
@@ -25,17 +25,22 @@ export default class Database {
                 .select()
                 .all();
             return records.filter((record) => {
-                return record.get('Модерация') &&
+                let filtered = record.get('Модерация') &&
                     areas.includes(record.get('Район')) &&
                     beds.includes(record.get('Количество спален')) &&
                     price >= record.get('Цена долларов в месяц');
+                if (minPrice != null) {
+                  filtered = filtered &&
+                    minPrice <= record.get('Цена долларов в месяц');
+                }
+                return filtered;
             });
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`);
         }
     }
 
-    static async findNewProperties(areas, beds, price, properties = []) {
+    static async findNewProperties(areas, beds, minPrice, price, properties = []) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
         try {
             const records = await airtable
@@ -44,11 +49,16 @@ export default class Database {
                 .select()
                 .all();
             return records.filter((record) => {
-                return !properties.includes(`${record.get('Номер')}`) &&
+                let filtered = !properties.includes(`${record.get('Номер')}`) &&
                     record.get('Модерация') &&
                     areas.includes(record.get('Район')) &&
                     beds.includes(record.get('Количество спален')) &&
                     price >= record.get('Цена долларов в месяц')
+                if (minPrice != null) {
+                  filtered = filtered &&
+                    minPrice <= record.get('Цена долларов в месяц');
+                }
+                return filtered;
             });
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`);

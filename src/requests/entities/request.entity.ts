@@ -29,6 +29,9 @@ export class Request {
     @Column({ 'name': 'properties', 'type': 'simple-array', 'default': null })
     properties: string;
 
+    @Column({ 'name': 'min_price', 'default': null })
+    minPrice: number;
+
     @Column({ 'name': 'price', 'default': null })
     price: number;
 

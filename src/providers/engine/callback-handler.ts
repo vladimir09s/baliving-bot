@@ -263,7 +263,7 @@ export default class CallbackHandler {
         );
         const request: any = await this.requestsService.find(+user.requestId);
         console.log(request);
-        const databaseProperties: any = await Database.findProperties(request.areas, request.beds, request.price);
+        const databaseProperties: any = await Database.findProperties(request.areas, request.beds, request.minPrice, request.price);
         if (databaseProperties.length) {
             const properties: number[] = [];
             let isSent: boolean = false;

@@ -88,52 +88,57 @@ export default class MessageHandler {
     }
 
     async handlePriceMessage(message, user) {
-        const price: number = +message.text;
-        console.debug(price);
-        if (Number.isNaN(price)) {
+        console.debug(message.text);
+        let [minPrice, maxPrice] = [null, null];
+        if (/^\d+$/.test(message.text)) {
+          maxPrice = +message.text;
+        } else if (/^\d+-\d+$/.test(message.text)) {
+          [minPrice, maxPrice] = message.text.split("-").map((item: string) => +item);
+        } else {
             await this.bot.sendMessage(
                 user.chatId,
                 locales[user.locale].price
             );
-        } else {
-            console.debug(message);
-            const request: any = await this.requestsService.update(+user.requestId, { price });
-            if (user.nextAction.includes('delete-message')) {
-                await this.bot.deleteMessage(user.chatId, +user.nextAction.substring(user.nextAction.indexOf(':') + 1))
-            }
-            await this.bot.deleteMessage(user.chatId, message.message_id);
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[5]);
-            await this.bot.sendMessage(
-                message.chat.id,
-                locales[user.locale].finish,
-                { parse_mode: 'html' }
-            );
-            const options: any = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
-                    ]
-                }
-            }
-            let template: string = locales[user.locale].details;
-            console.debug(request);
-            let requestAreas: any = [];
-            if (user.locale === 'en') {
-                request.areas.forEach(area => {
-                    requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
-                });
-            } else {
-                requestAreas = request.areas;
-            }
-            template = template.replace('${areas}', requestAreas.join(','));
-            template = template.replace('${beds}', request.beds.join(','));
-            template = template.replace('${price}', request.price);
-            await this.bot.sendMessage(
-                message.chat.id,
-                template,
-                options
-            );
+            return;
         }
+        console.debug({ minPrice, maxPrice});
+        console.debug(message);
+        const request: any = await this.requestsService.update(+user.requestId, { minPrice: minPrice, price: maxPrice });
+        if (user.nextAction.includes('delete-message')) {
+            await this.bot.deleteMessage(user.chatId, +user.nextAction.substring(user.nextAction.indexOf(':') + 1))
+        }
+        await this.bot.deleteMessage(user.chatId, message.message_id);
+        await this.usersService.update(user.userId, user.chatId, ACTIONS[5]);
+        await this.bot.sendMessage(
+            message.chat.id,
+            locales[user.locale].finish,
+            { parse_mode: 'html' }
+        );
+        const options: any = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
+                ]
+            }
+        }
+        let template: string = locales[user.locale].details;
+        console.debug(request);
+        let requestAreas: any = [];
+        if (user.locale === 'en') {
+            request.areas.forEach(area => {
+                requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+            });
+        } else {
+            requestAreas = request.areas;
+        }
+        template = template.replace('${areas}', requestAreas.join(','));
+        template = template.replace('${beds}', request.beds.join(','));
+        template = template.replace('${price}', message.text);
+        await this.bot.sendMessage(
+            message.chat.id,
+            template,
+            options
+        );
     }
 
     async handleStartMessage(message, user) {
