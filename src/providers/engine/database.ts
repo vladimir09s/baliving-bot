@@ -8,9 +8,11 @@ export default class Database {
             const records = await airtable
                 .base(process.env.AIRTABLE_BASE_ID)
                 .table(process.env.AIRTABLE_USERS_TABLE_ID)
-                .select()
+                .select({
+                    filterByFormula: `{Email} = "${email}"`
+                })
                 .all();
-            return records.find(record => record.get("Email") === email);
+            return records.find((record) => record != null);
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`);
         }
