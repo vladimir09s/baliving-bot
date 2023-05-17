@@ -13,6 +13,7 @@ const TRIAL = 'TRIAL';
 
 const ACTIONS = {
     10: { currentAction: 'ask-locale', nextAction: 'read-locale' },
+    11: { currentAction: 'waiting-for-reply', nextAction: 'read-min-price' },
     0: { currentAction: 'ask-email', nextAction: 'read-email' },
     1: { currentAction: 'waiting-for-reply', nextAction: null },
     2: { currentAction: 'waiting-for-reply', nextAction: 'read-areas' },
@@ -43,6 +44,10 @@ export default class MessageHandler {
                 user.nextAction.includes('read-price') || user.nextAction.includes('read-edit-price')
             )) {
                 await this.handlePriceMessage(message, user);
+            } else if (user.nextAction && (
+                user.nextAction.includes('read-min-price') || user.nextAction.includes('read-edit-min-price')
+            )) {
+                await this.handleMinPriceMessage(message, user, user.nextAction.includes('read-edit-min-price'));
             } else if (message.text.toString() === EDIT_COMMAND) {
                 await this.handleEditMessage(message);
             }
@@ -76,6 +81,7 @@ export default class MessageHandler {
                 inline_keyboard: [
                     [{ text: locales[user.locale].editAreas, callback_data: 'edit-areas' }],
                     [{ text: locales[user.locale].editBeds, callback_data: 'edit-beds' }],
+                    [{ text: locales[user.locale].editMinPrice, callback_data: 'edit-min-price' }],
                     [{ text: locales[user.locale].editPrice, callback_data: 'edit-price' }],
                 ]
             }
@@ -87,58 +93,110 @@ export default class MessageHandler {
         );
     }
 
+    async handleMinPriceMessage(message, user, isEdit = false) {
+      const minPrice: number = +message.text;
+      const actionData = isEdit ? ACTIONS[5] : ACTIONS[4];
+      await this.usersService.update(user.userId, user.chatId, actionData);
+      console.debug(minPrice);
+      if (Number.isNaN(minPrice)) {
+          await this.bot.sendMessage(
+              user.chatId,
+              locales[user.locale].minPrice
+          );
+          return;
+      }
+      if (user.nextAction.includes('delete-message')) {
+          await this.bot.deleteMessage(user.chatId, +user.nextAction.substring(user.nextAction.indexOf(':') + 1))
+      }
+      await this.bot.deleteMessage(user.chatId, message.message_id);
+      await this.requestsService.update(+user.requestId, { minPrice });
+      const request: any = await this.requestsService.find(+user.requestId);
+      if (isEdit) {
+          await this.bot.sendMessage(
+              user.chatId,
+              locales[user.locale].finish,
+              { parse_mode: 'html' }
+          );
+          const options: any = {
+              reply_markup: {
+                  inline_keyboard: [
+                      [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
+                  ]
+              }
+          }
+          let template: string = locales[user.locale].details;
+          let requestAreas: any = [];
+          if (user.locale === 'en') {
+              request.areas.forEach(area => {
+                  requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+              });
+          } else {
+              requestAreas = request.areas;
+          }
+          template = template.replace('${areas}', requestAreas.join(','));
+          template = template.replace('${beds}', request.beds.join(','));
+          template = template.replace('${price}', request.price);
+          await this.bot.sendMessage(
+              user.chatId,
+              template,
+              options
+          );
+      } else {
+          await this.bot.sendMessage(
+              user.chatId,
+              locales[user.locale].price
+          );
+          await this.usersService.update(user.userId, user.chatId, ACTIONS[4]);
+      }
+    }
+
     async handlePriceMessage(message, user) {
-        console.debug(message.text);
-        let [minPrice, maxPrice] = [null, null];
-        if (/^\d+$/.test(message.text)) {
-          maxPrice = +message.text;
-        } else if (/^\d+-\d+$/.test(message.text)) {
-          [minPrice, maxPrice] = message.text.split("-").map((item: string) => +item);
-        } else {
+        const price: number = +message.text;
+        console.debug(price);
+        if (Number.isNaN(price)) {
             await this.bot.sendMessage(
                 user.chatId,
                 locales[user.locale].price
             );
-            return;
-        }
-        console.debug({ minPrice, maxPrice});
-        console.debug(message);
-        const request: any = await this.requestsService.update(+user.requestId, { minPrice: minPrice, price: maxPrice });
-        if (user.nextAction.includes('delete-message')) {
-            await this.bot.deleteMessage(user.chatId, +user.nextAction.substring(user.nextAction.indexOf(':') + 1))
-        }
-        await this.bot.deleteMessage(user.chatId, message.message_id);
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[5]);
-        await this.bot.sendMessage(
-            message.chat.id,
-            locales[user.locale].finish,
-            { parse_mode: 'html' }
-        );
-        const options: any = {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
-                ]
-            }
-        }
-        let template: string = locales[user.locale].details;
-        console.debug(request);
-        let requestAreas: any = [];
-        if (user.locale === 'en') {
-            request.areas.forEach(area => {
-                requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
-            });
         } else {
-            requestAreas = request.areas;
+            console.debug(message);
+            const request: any = await this.requestsService.update(+user.requestId, { price });
+            if (user.nextAction.includes('delete-message')) {
+                await this.bot.deleteMessage(user.chatId, +user.nextAction.substring(user.nextAction.indexOf(':') + 1))
+            }
+            await this.bot.deleteMessage(user.chatId, message.message_id);
+            await this.usersService.update(user.userId, user.chatId, ACTIONS[5]);
+            await this.bot.sendMessage(
+                message.chat.id,
+                locales[user.locale].finish,
+                { parse_mode: 'html' }
+            );
+            const options: any = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: locales[user.locale].agree, callback_data: 'start-search' }],
+                    ]
+                }
+            }
+            let template: string = locales[user.locale].details;
+            console.debug(request);
+            let requestAreas: any = [];
+            if (user.locale === 'en') {
+                request.areas.forEach(area => {
+                    requestAreas.push(areas[user.locale][areas['ru'].indexOf(area)]);
+                });
+            } else {
+                requestAreas = request.areas;
+            }
+            template = template.replace('${areas}', requestAreas.join(','));
+            template = template.replace('${beds}', request.beds.join(','));
+            template = template.replace('${price}', (request.minPrice != null) ? `${request.minPrice}-${request.price}` : request.price);
+            await this.bot.sendMessage(
+                message.chat.id,
+                template,
+                options
+            );
         }
-        template = template.replace('${areas}', requestAreas.join(','));
-        template = template.replace('${beds}', request.beds.join(','));
-        template = template.replace('${price}', message.text);
-        await this.bot.sendMessage(
-            message.chat.id,
-            template,
-            options
-        );
     }
 
     async handleStartMessage(message, user) {

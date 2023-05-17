@@ -16,10 +16,13 @@ const START_SEARCH = 'start-search';
 const EDIT_AREAS = 'edit-areas';
 const EDIT_BEDS = 'edit-beds';
 const EDIT_PRICE = 'edit-price';
+const EDIT_MIN_PRICE = 'edit-min-price';
 
 const CATALOG_URL = 'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=Popup__find__${id}';
 
 const ACTIONS = {
+    10: { currentAction: 'waiting-for-reply', nextAction: 'read-edit-min-price' },
+    11: { currentAction: 'waiting-for-reply', nextAction: 'read-min-price' },
     0: { currentAction: 'ask-email', nextAction: 'read-email' },
     1: { currentAction: 'waiting-for-reply', nextAction: null },
     2: { currentAction: 'waiting-for-reply', nextAction: 'read-areas' },
@@ -60,7 +63,7 @@ export default class CallbackHandler {
                 } else {
                     await this.handleBedMessage(messageId, data, keyboard, user);
                 }
-            } else if ([EDIT_AREAS, EDIT_BEDS, EDIT_PRICE].includes(data)) {
+            } else if ([EDIT_AREAS, EDIT_BEDS, EDIT_MIN_PRICE, EDIT_PRICE].includes(data)) {
                 const isValid: boolean = await this.isValidUser(user);
                 if (isValid) {
                     switch (data) {
@@ -69,6 +72,9 @@ export default class CallbackHandler {
                             break;
                         case EDIT_BEDS:
                             await this.handleEditBedsMessage(messageId, user);
+                            break;
+                        case EDIT_MIN_PRICE:
+                            await this.handleEditMinPriceMessage(messageId, user);
                             break;
                         case EDIT_PRICE:
                             await this.handleEditPriceMessage(messageId, user);
@@ -191,6 +197,20 @@ export default class CallbackHandler {
             user.chatId,
             locales[user.locale].numberOfBeds,
             options
+        );
+    }
+
+    async handleEditMinPriceMessage(messageId, user, isEdit = false) {
+        console.debug(messageId);
+        await this.usersService.update(user.userId, user.chatId, ACTIONS[9]);
+        const botMessage = await this.bot.sendMessage(
+            user.chatId,
+            locales[user.locale].minPrice
+        );
+        await this.usersService.update(
+            user.userId,
+            user.chatId,
+            { nextAction: `${ACTIONS[10].nextAction},delete-message:${botMessage.message_id}` }
         );
     }
 
@@ -374,7 +394,7 @@ export default class CallbackHandler {
 
     async handleFinishBedMessage(messageId, user, keyboardBeds, isEdit = false) {
         await this.bot.deleteMessage(user.chatId, messageId);
-        const actionData = isEdit ? ACTIONS[5] : ACTIONS[4];
+        const actionData = isEdit ? ACTIONS[5] : ACTIONS[10];
         await this.usersService.update(user.userId, user.chatId, actionData);
         const keyboardItems: any = [];
         keyboardBeds.forEach(subKeyboard => {
@@ -422,9 +442,9 @@ export default class CallbackHandler {
         } else {
             const botMessage = await this.bot.sendMessage(
                 user.chatId,
-                locales[user.locale].price
+                locales[user.locale].minPrice
             );
-            await this.usersService.update(user.userId, user.chatId, { nextAction: `${ACTIONS[4].nextAction},delete-message:${botMessage.message_id}`});
+            await this.usersService.update(user.userId, user.chatId, { nextAction: `${ACTIONS[11].nextAction},delete-message:${botMessage.message_id}`});
         }
     }
 
