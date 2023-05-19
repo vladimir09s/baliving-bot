@@ -5,42 +5,42 @@ import {
     Entity,
     Generated,
     PrimaryGeneratedColumn,
-    UpdateDateColumn
-} from 'typeorm';
+    UpdateDateColumn,
+} from 'typeorm'
 
 @Entity({ name: 'requests' })
 export class Request {
     @PrimaryGeneratedColumn()
-    id: number;
+    id: number
 
-    @Column({ 'name': 'guid' })
+    @Column({ name: 'guid' })
     @Generated('uuid')
-    guid: string;
+    guid: string
 
-    @Column({ 'name': 'user_id', 'type': 'bigint' })
-    userId: number;
+    @Column({ name: 'user_id', type: 'bigint' })
+    userId: number
 
-    @Column({ 'name': 'areas', 'type': 'simple-array', 'default': null })
-    areas: string;
+    @Column({ name: 'areas', type: 'simple-array', default: null })
+    areas: string
 
-    @Column({ 'name': 'beds', 'type': 'simple-array', 'default': null })
-    beds: string;
+    @Column({ name: 'beds', type: 'simple-array', default: null })
+    beds: string
 
-    @Column({ 'name': 'properties', 'type': 'simple-array', 'default': null })
-    properties: string;
+    @Column({ name: 'properties', type: 'simple-array', default: null })
+    properties: string
 
-    @Column({ 'name': 'min_price', 'default': null })
-    minPrice: number;
+    @Column({ name: 'min_price', default: null })
+    minPrice: number
 
-    @Column({ 'name': 'price', 'default': null })
-    price: number;
+    @Column({ name: 'price', default: null })
+    price: number
 
     @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
+    createdAt: Date
 
     @UpdateDateColumn({ name: 'updated_at' })
-    updatedAt: Date;
+    updatedAt: Date
 
     @DeleteDateColumn({ name: 'deleted_at' })
-    deletedAt: Date;
+    deletedAt: Date
 }
