@@ -1,4 +1,5 @@
 import Airtable from 'airtable'
+
 require('dotenv').config()
 
 export default class Database {
@@ -29,7 +30,7 @@ export default class Database {
         // for arrays as contain or in. Therefore, the search for the number is
         // performed by the string with the number treated with commas
         const propertiesFormula = `NOT(SEARCH(CONCATENATE(",", {Номер} ,","), ',${properties},'))`
-        const res = `
+        return `
         AND(
             ${properties.length ? propertiesFormula : 'TRUE()'},
             {Модерация},
@@ -39,13 +40,12 @@ export default class Database {
             {Цена долларов в месяц} <= ${price}
         )
         `
-        return res
     }
 
     static async findProperties(areas, beds, minPrice, price) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
         try {
-            const records = await airtable
+            return await airtable
                 .base(process.env.AIRTABLE_BASE_ID)
                 .table(process.env.AIRTABLE_PROPERTIES_TABLE_ID)
                 .select({
@@ -57,7 +57,6 @@ export default class Database {
                     ),
                 })
                 .all()
-            return records
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`)
         }
@@ -72,7 +71,7 @@ export default class Database {
     ) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
         try {
-            const records = await airtable
+            return await airtable
                 .base(process.env.AIRTABLE_BASE_ID)
                 .table(process.env.AIRTABLE_PROPERTIES_TABLE_ID)
                 .select({
@@ -85,7 +84,6 @@ export default class Database {
                     ),
                 })
                 .all()
-            return records
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`)
             return []
