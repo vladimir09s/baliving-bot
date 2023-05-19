@@ -6,6 +6,7 @@ import areas from '../../config/areas'
 import beds from '../../config/beds'
 import { RequestsService } from '../../requests/requests.service'
 import { FetchService } from 'nestjs-fetch'
+import { Templater } from './templater'
 
 const CHOSE = '✅'
 const TRIAL = 'TRIAL'
@@ -396,34 +397,11 @@ export default class CallbackHandler {
                 }
             }
 
-            let template: string = locales[user.locale].finalMessage
-            if (property.get('Заголовок') && user.locale === 'ru') {
-                template = `${property.get('Заголовок')}\n${template}`
-            } else if (property.get('Title eng') && user.locale === 'en') {
-                template = `${property.get('Title eng')}\n${template}`
-            }
-            let templateArea: string = ''
-            if (user.locale === 'ru') {
-                templateArea = property.get('Район')
-            } else if (user.locale === 'en') {
-                templateArea = property.get('District')
-            }
-            template = template.replace('${areas}', templateArea)
-            template = template.replace(
-                '${beds}',
-                property.get('Количество спален')
+            const template = Templater.applyProperty(
+                property,
+                user.locale,
+                CATALOG_URL
             )
-            template = template.replace(
-                '${price}',
-                property.get('Цена долларов в месяц')
-            )
-            let link = CATALOG_URL
-            link = link.replace('${id}', property.get('ad_id'))
-            template = template.replace(
-                '${link}',
-                `<a href="${link}">${locales[user.locale].link}</a>`
-            )
-
             await this.bot.sendMessage(user.chatId, template, options)
 
             if (property.get('Фото') && Array.isArray(property.get('Фото'))) {
@@ -520,20 +498,7 @@ export default class CallbackHandler {
                     ],
                 },
             }
-            let template: string = locales[user.locale].details
-            let requestAreas: any = []
-            if (user.locale === 'en') {
-                request.areas.forEach((area) => {
-                    requestAreas.push(
-                        areas[user.locale][areas['ru'].indexOf(area)]
-                    )
-                })
-            } else {
-                requestAreas = request.areas
-            }
-            template = template.replace('${areas}', requestAreas.join(','))
-            template = template.replace('${beds}', request.beds.join(','))
-            template = template.replace('${price}', request.price)
+            const template = Templater.applyDetails(request, user.locale)
             await this.bot.sendMessage(user.chatId, template, options)
         } else {
             const botMessage = await this.bot.sendMessage(
@@ -606,20 +571,7 @@ export default class CallbackHandler {
                     ],
                 },
             }
-            let template: string = locales[user.locale].details
-            let requestAreas: any = []
-            if (user.locale === 'en') {
-                request.areas.forEach((area) => {
-                    requestAreas.push(
-                        areas[user.locale][areas['ru'].indexOf(area)]
-                    )
-                })
-            } else {
-                requestAreas = request.areas
-            }
-            template = template.replace('${areas}', requestAreas.join(','))
-            template = template.replace('${beds}', request.beds.join(','))
-            template = template.replace('${price}', request.price)
+            const template = Templater.applyDetails(request, user.locale)
             await this.bot.sendMessage(user.chatId, template, options)
         } else {
             let keyboard: any = []

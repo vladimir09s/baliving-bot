@@ -4,6 +4,7 @@ import { User } from '../../users/entities/user.entity'
 import Database from './database'
 import areas from '../../config/areas'
 import { RequestsService } from '../../requests/requests.service'
+import { Templater } from './templater'
 
 const START_COMMAND: string = '/start'
 const EDIT_COMMAND: string = '/edit'
@@ -29,6 +30,7 @@ export default class MessageHandler {
         private readonly requestsService: RequestsService,
         private readonly bot
     ) {}
+
     async handle(message) {
         const chatId: number = message.chat.id
         const userId: number = message.from.id
@@ -169,20 +171,7 @@ export default class MessageHandler {
                     ],
                 },
             }
-            let template: string = locales[user.locale].details
-            let requestAreas: any = []
-            if (user.locale === 'en') {
-                request.areas.forEach((area) => {
-                    requestAreas.push(
-                        areas[user.locale][areas['ru'].indexOf(area)]
-                    )
-                })
-            } else {
-                requestAreas = request.areas
-            }
-            template = template.replace('${areas}', requestAreas.join(','))
-            template = template.replace('${beds}', request.beds.join(','))
-            template = template.replace('${price}', request.price)
+            const template = Templater.applyDetails(request, user.locale)
             await this.bot.sendMessage(user.chatId, template, options)
         } else {
             await this.bot.sendMessage(user.chatId, locales[user.locale].price)
@@ -226,26 +215,7 @@ export default class MessageHandler {
                     ],
                 },
             }
-            let template: string = locales[user.locale].details
-            console.debug(request)
-            let requestAreas: any = []
-            if (user.locale === 'en') {
-                request.areas.forEach((area) => {
-                    requestAreas.push(
-                        areas[user.locale][areas['ru'].indexOf(area)]
-                    )
-                })
-            } else {
-                requestAreas = request.areas
-            }
-            template = template.replace('${areas}', requestAreas.join(','))
-            template = template.replace('${beds}', request.beds.join(','))
-            template = template.replace(
-                '${price}',
-                request.minPrice != null
-                    ? `${request.minPrice}-${request.price}`
-                    : request.price
-            )
+            const template = Templater.applyDetails(request, user.locale)
             await this.bot.sendMessage(message.chat.id, template, options)
         }
     }

@@ -5,6 +5,8 @@ import { RequestsService } from '../requests/requests.service'
 import Database from './engine/database'
 import locales from '../config/locales'
 import { FetchService } from 'nestjs-fetch'
+import { Templater } from './engine/templater'
+
 const TelegramBot = require('node-telegram-bot-api')
 require('dotenv').config()
 
@@ -187,32 +189,10 @@ export class TasksService {
                     ],
                 }
             }
-            let template: string = locales[user.locale].finalMessage
-            if (property.get('Заголовок') && user.locale === 'ru') {
-                template = `${property.get('Заголовок')}\n${template}`
-            } else if (property.get('Title eng') && user.locale === 'en') {
-                template = `${property.get('Title eng')}\n${template}`
-            }
-            let templateArea: string = ''
-            if (user.locale === 'ru') {
-                templateArea = property.get('Район')
-            } else if (user.locale === 'en') {
-                templateArea = property.get('District')
-            }
-            template = template.replace('${areas}', templateArea)
-            template = template.replace(
-                '${beds}',
-                property.get('Количество спален')
-            )
-            template = template.replace(
-                '${price}',
-                property.get('Цена долларов в месяц')
-            )
-            let link = CATALOG_URL
-            link = link.replace('${id}', property.get('ad_id'))
-            template = template.replace(
-                '${link}',
-                `<a href="${link}">${locales[user.locale].link}</a>`
+            const template = Templater.applyProperty(
+                property,
+                user.locale,
+                CATALOG_URL
             )
             await bot.sendMessage(user.chatId, template, options)
 
