@@ -23,7 +23,8 @@ export default class Handler {
         this.messageHandler = new MessageHandler(
             usersService,
             requestsService,
-            bot
+            bot,
+            fetch
         )
     }
 

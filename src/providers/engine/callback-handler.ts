@@ -7,6 +7,7 @@ import beds from '../../config/beds'
 import { RequestsService } from '../../requests/requests.service'
 import { FetchService } from 'nestjs-fetch'
 import { Templater } from './templater'
+import BaseHandler from './base-handler'
 
 const CHOSE = '✅'
 const TRIAL = 'TRIAL'
@@ -40,13 +41,15 @@ const ACTIONS = {
     9: { currentAction: 'waiting-for-reply', nextAction: 'read-edit-price' },
 }
 
-export default class CallbackHandler {
+export default class CallbackHandler extends BaseHandler {
     constructor(
-        private readonly usersService: UsersService,
-        private readonly requestsService: RequestsService,
-        private readonly bot,
-        private readonly fetch: FetchService
-    ) {}
+        usersService: UsersService,
+        requestsService: RequestsService,
+        bot,
+        fetch: FetchService
+    ) {
+        super(usersService, requestsService, bot, fetch)
+    }
 
     async handle(chatId, userId, messageId, data, keyboard) {
         const user: User = await this.usersService.findOne(userId, chatId)
@@ -481,25 +484,7 @@ export default class CallbackHandler {
             { beds }
         )
         if (isEdit) {
-            await this.bot.sendMessage(
-                user.chatId,
-                locales[user.locale].finish,
-                { parse_mode: 'html' }
-            )
-            const options: any = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: locales[user.locale].agree,
-                                callback_data: 'start-search',
-                            },
-                        ],
-                    ],
-                },
-            }
-            const template = Templater.applyDetails(request, user.locale)
-            await this.bot.sendMessage(user.chatId, template, options)
+            await this.sendStartSearchingPreview(user, request)
         } else {
             const botMessage = await this.bot.sendMessage(
                 user.chatId,
@@ -554,25 +539,7 @@ export default class CallbackHandler {
             { areas: userAreas }
         )
         if (isEdit) {
-            await this.bot.sendMessage(
-                user.chatId,
-                locales[user.locale].finish,
-                { parse_mode: 'html' }
-            )
-            const options: any = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: locales[user.locale].agree,
-                                callback_data: 'start-search',
-                            },
-                        ],
-                    ],
-                },
-            }
-            const template = Templater.applyDetails(request, user.locale)
-            await this.bot.sendMessage(user.chatId, template, options)
+            await this.sendStartSearchingPreview(user, request)
         } else {
             let keyboard: any = []
             beds.forEach((numberOfBeds, index) => {
@@ -655,15 +622,6 @@ export default class CallbackHandler {
             locales[user.locale].chooseAreas,
             options
         )
-    }
-
-    sliceIntoChunks(array, size) {
-        const result = []
-        for (let i = 0; i < array.length; i += size) {
-            const chunk = array.slice(i, i + size)
-            result.push(chunk)
-        }
-        return result
     }
 
     async handleAreaMessage(messageId, data, keyboard, user) {

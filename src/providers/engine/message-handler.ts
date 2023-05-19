@@ -5,6 +5,8 @@ import Database from './database'
 import areas from '../../config/areas'
 import { RequestsService } from '../../requests/requests.service'
 import { Templater } from './templater'
+import BaseHandler from './base-handler'
+import { FetchService } from 'nestjs-fetch'
 
 const START_COMMAND: string = '/start'
 const EDIT_COMMAND: string = '/edit'
@@ -24,12 +26,15 @@ const ACTIONS = {
     6: { currentAction: 'display-results', nextAction: null },
 }
 
-export default class MessageHandler {
+export default class MessageHandler extends BaseHandler {
     constructor(
-        private readonly usersService: UsersService,
-        private readonly requestsService: RequestsService,
-        private readonly bot
-    ) {}
+        usersService: UsersService,
+        requestsService: RequestsService,
+        bot,
+        fetch: FetchService
+    ) {
+        super(usersService, requestsService, bot, fetch)
+    }
 
     async handle(message) {
         const chatId: number = message.chat.id
@@ -154,25 +159,7 @@ export default class MessageHandler {
         await this.requestsService.update(+user.requestId, { minPrice })
         const request: any = await this.requestsService.find(+user.requestId)
         if (isEdit) {
-            await this.bot.sendMessage(
-                user.chatId,
-                locales[user.locale].finish,
-                { parse_mode: 'html' }
-            )
-            const options: any = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: locales[user.locale].agree,
-                                callback_data: 'start-search',
-                            },
-                        ],
-                    ],
-                },
-            }
-            const template = Templater.applyDetails(request, user.locale)
-            await this.bot.sendMessage(user.chatId, template, options)
+            await this.sendStartSearchingPreview(user, request)
         } else {
             await this.bot.sendMessage(user.chatId, locales[user.locale].price)
             await this.usersService.update(user.userId, user.chatId, ACTIONS[4])
@@ -226,15 +213,6 @@ export default class MessageHandler {
             requestId: null,
         })
         await this.bot.sendMessage(message.chat.id, locales[user.locale].start)
-    }
-
-    sliceIntoChunks(array, size) {
-        const result = []
-        for (let i = 0; i < array.length; i += size) {
-            const chunk = array.slice(i, i + size)
-            result.push(chunk)
-        }
-        return result
     }
 
     async handleEmailMessage(message, user) {
