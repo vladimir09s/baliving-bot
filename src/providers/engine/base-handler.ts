@@ -25,6 +25,11 @@ export enum Actions {
     ReadEditPrice = 'read-edit-price',
 }
 
+export enum Commands {
+    Start = '/start',
+    Edit = '/edit',
+}
+
 export class BaseHandler {
     constructor(
         protected readonly usersService: UsersService,

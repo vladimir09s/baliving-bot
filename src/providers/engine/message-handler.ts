@@ -5,11 +5,8 @@ import Database from './database'
 import areas from '../../config/areas'
 import { RequestsService } from '../../requests/requests.service'
 import { Templater } from './templater'
-import { Actions, BaseHandler } from './base-handler'
+import { Actions, BaseHandler, Commands } from './base-handler'
 import { FetchService } from 'nestjs-fetch'
-
-const START_COMMAND: string = '/start'
-const EDIT_COMMAND: string = '/edit'
 
 const CHOSE = '✅'
 const TRIAL = 'TRIAL'
@@ -31,7 +28,7 @@ export default class MessageHandler extends BaseHandler {
         console.debug(user)
         console.debug(message)
         try {
-            if (message.text.toString() === START_COMMAND) {
+            if (message.text.toString() === Commands.Start) {
                 await this.handleLocaleMessage(message, user)
             } else if (
                 user.nextAction &&
@@ -54,7 +51,7 @@ export default class MessageHandler extends BaseHandler {
                     user,
                     user.nextAction.includes(Actions.ReadEditMinPrice)
                 )
-            } else if (message.text.toString() === EDIT_COMMAND) {
+            } else if (message.text === Commands.Edit) {
                 await this.handleEditMessage(message)
             }
         } catch (exception) {
