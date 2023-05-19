@@ -12,7 +12,7 @@ export default class Database {
                     filterByFormula: `{Email} = "${email}"`
                 })
                 .all();
-            return records.find((record) => record != null);
+            return (records.length > 0) ? records[0] : null;
         } catch (exception) {
             console.error(`issue detected ...\n${exception}`);
         }
