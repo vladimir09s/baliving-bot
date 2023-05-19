@@ -7,7 +7,7 @@ import beds from '../../config/beds'
 import { RequestsService } from '../../requests/requests.service'
 import { FetchService } from 'nestjs-fetch'
 import { Templater } from './templater'
-import BaseHandler from './base-handler'
+import { BaseHandler, Actions } from './base-handler'
 
 const CHOSE = '✅'
 const TRIAL = 'TRIAL'
@@ -22,24 +22,6 @@ const EDIT_MIN_PRICE = 'edit-min-price'
 
 const CATALOG_URL =
     'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=Popup__find__${id}'
-
-const ACTIONS = {
-    10: {
-        currentAction: 'waiting-for-reply',
-        nextAction: 'read-edit-min-price',
-    },
-    11: { currentAction: 'waiting-for-reply', nextAction: 'read-min-price' },
-    0: { currentAction: 'ask-email', nextAction: 'read-email' },
-    1: { currentAction: 'waiting-for-reply', nextAction: null },
-    2: { currentAction: 'waiting-for-reply', nextAction: 'read-areas' },
-    3: { currentAction: 'waiting-for-reply', nextAction: 'read-beds' },
-    4: { currentAction: 'waiting-for-reply', nextAction: 'read-price' },
-    5: { currentAction: 'waiting-for-reply', nextAction: 'confirm' },
-    6: { currentAction: 'display-results', nextAction: null },
-    7: { currentAction: 'waiting-for-reply', nextAction: 'read-edit-areas' },
-    8: { currentAction: 'waiting-for-reply', nextAction: 'read-edit-beds' },
-    9: { currentAction: 'waiting-for-reply', nextAction: 'read-edit-price' },
-}
 
 export default class CallbackHandler extends BaseHandler {
     constructor(
@@ -80,7 +62,7 @@ export default class CallbackHandler extends BaseHandler {
                         user
                     )
                 }
-            } else if (user.nextAction === 'read-beds') {
+            } else if (user.nextAction === Actions.ReadBeds) {
                 if (data === FINISH) {
                     await this.handleFinishBedMessage(messageId, user, keyboard)
                 } else {
@@ -169,7 +151,8 @@ export default class CallbackHandler extends BaseHandler {
 
     async handleEmailMessage(chatId, userId, user) {
         await this.usersService.update(userId, chatId, {
-            ...ACTIONS[0],
+            currentAction: Actions.AskEmail,
+            nextAction: Actions.ReadEmail,
             requestId: null,
         })
         await this.bot.sendMessage(chatId, locales[user.locale].start)
@@ -177,7 +160,10 @@ export default class CallbackHandler extends BaseHandler {
 
     async handleEditAreasMessage(messageId, user) {
         const request: any = await this.requestsService.find(+user.requestId)
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[7])
+        await this.usersService.update(user.userId, user.chatId, {
+            currentAction: Actions.WaitingForReply,
+            nextAction: Actions.ReadEditAreas,
+        })
         let keyboard: any = []
         let hasChosenItems = false
         areas[user.locale].forEach((area) => {
@@ -230,7 +216,10 @@ export default class CallbackHandler extends BaseHandler {
 
     async handleEditBedsMessage(messageId, user) {
         const request: any = await this.requestsService.find(+user.requestId)
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[8])
+        await this.usersService.update(user.userId, user.chatId, {
+            currentAction: Actions.WaitingForReply,
+            nextAction: Actions.ReadEditBeds,
+        })
         let keyboard: any = []
         let hasChosenItems = false
         beds.forEach((numberOfBeds, index) => {
@@ -269,25 +258,31 @@ export default class CallbackHandler extends BaseHandler {
 
     async handleEditMinPriceMessage(messageId, user, isEdit = false) {
         console.debug(messageId)
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[9])
+        await this.usersService.update(user.userId, user.chatId, {
+            currentAction: Actions.WaitingForReply,
+            nextAction: Actions.ReadEditPrice,
+        })
         const botMessage = await this.bot.sendMessage(
             user.chatId,
             locales[user.locale].minPrice
         )
         await this.usersService.update(user.userId, user.chatId, {
-            nextAction: `${ACTIONS[10].nextAction},delete-message:${botMessage.message_id}`,
+            nextAction: `${Actions.ReadEditMinPrice},delete-message:${botMessage.message_id}`,
         })
     }
 
     async handleEditPriceMessage(messageId, user) {
         console.debug(messageId)
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[9])
+        await this.usersService.update(user.userId, user.chatId, {
+            currentAction: Actions.WaitingForReply,
+            nextAction: Actions.ReadEditPrice,
+        })
         const botMessage = await this.bot.sendMessage(
             user.chatId,
             locales[user.locale].price
         )
         await this.usersService.update(user.userId, user.chatId, {
-            nextAction: `${ACTIONS[9].nextAction},delete-message:${botMessage.message_id}`,
+            nextAction: `${Actions.ReadEditPrice},delete-message:${botMessage.message_id}`,
         })
     }
 
@@ -315,7 +310,10 @@ export default class CallbackHandler extends BaseHandler {
             },
         }
         if (!databaseUser) {
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[1])
+            await this.usersService.update(user.userId, user.chatId, {
+                currentAction: Actions.WaitingForReply,
+                nextAction: null,
+            })
             await this.bot.sendMessage(
                 user.chatId,
                 locales[user.locale].notFound,
@@ -332,7 +330,10 @@ export default class CallbackHandler extends BaseHandler {
             })
             return true
         } else {
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[1])
+            await this.usersService.update(user.userId, user.chatId, {
+                currentAction: Actions.WaitingForReply,
+                nextAction: null,
+            })
             await this.bot.sendMessage(
                 user.chatId,
                 locales[user.locale].expired,
@@ -344,7 +345,10 @@ export default class CallbackHandler extends BaseHandler {
 
     async handleSearchMessage(messageId, user) {
         // await this.bot.editMessageReplyMarkup(user.chatId, messageId, null, null);
-        await this.usersService.update(user.userId, user.chatId, ACTIONS[6])
+        await this.usersService.update(user.userId, user.chatId, {
+            currentAction: Actions.DisplayResults,
+            nextAction: null,
+        })
         await this.bot.sendMessage(user.chatId, locales[user.locale].checking)
         const request: any = await this.requestsService.find(+user.requestId)
         console.log(request)
@@ -465,7 +469,15 @@ export default class CallbackHandler extends BaseHandler {
         isEdit = false
     ) {
         await this.bot.deleteMessage(user.chatId, messageId)
-        const actionData = isEdit ? ACTIONS[5] : ACTIONS[10]
+        const actionData = isEdit
+            ? {
+                  currentAction: Actions.WaitingForReply,
+                  nextAction: Actions.Confirm,
+              }
+            : {
+                  currentAction: Actions.WaitingForReply,
+                  nextAction: Actions.ReadEditMinPrice,
+              }
         await this.usersService.update(user.userId, user.chatId, actionData)
         const keyboardItems: any = []
         keyboardBeds.forEach((subKeyboard) => {
@@ -491,7 +503,7 @@ export default class CallbackHandler extends BaseHandler {
                 locales[user.locale].minPrice
             )
             await this.usersService.update(user.userId, user.chatId, {
-                nextAction: `${ACTIONS[11].nextAction},delete-message:${botMessage.message_id}`,
+                nextAction: `${Actions.ReadMinPrice},delete-message:${botMessage.message_id}`,
             })
         }
     }
@@ -503,7 +515,15 @@ export default class CallbackHandler extends BaseHandler {
         isEdit = false
     ) {
         await this.bot.deleteMessage(user.chatId, messageId)
-        const actionData = isEdit ? ACTIONS[5] : ACTIONS[3]
+        const actionData = isEdit
+            ? {
+                  currentAction: Actions.WaitingForReply,
+                  nextAction: Actions.Confirm,
+              }
+            : {
+                  currentAction: Actions.WaitingForReply,
+                  nextAction: Actions.ReadBeds,
+              }
         if (!user.requestId) {
             const request: any = await this.requestsService.create({
                 userId: user.id,

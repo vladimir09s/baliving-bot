@@ -4,7 +4,28 @@ import { FetchService } from 'nestjs-fetch'
 import locales from '../../config/locales'
 import { Templater } from './templater'
 
-export default class BaseHandler {
+export enum Actions {
+    WaitingForReply = 'waiting-for-reply',
+    Confirm = 'confirm',
+    DisplayResults = 'display-results',
+
+    AskEmail = 'ask-email',
+    ReadEmail = 'read-email',
+
+    ReadLocale = 'read-locale',
+    ReadAreas = 'read-areas',
+    ReadBeds = 'read-beds',
+    ReadMinPrice = 'read-min-price',
+    ReadPrice = 'read-price',
+
+    ReadEditLocale = 'read-edit-locale',
+    ReadEditAreas = 'read-edit-areas',
+    ReadEditBeds = 'read-edit-beds',
+    ReadEditMinPrice = 'read-edit-min-price',
+    ReadEditPrice = 'read-edit-price',
+}
+
+export class BaseHandler {
     constructor(
         protected readonly usersService: UsersService,
         protected readonly requestsService: RequestsService,

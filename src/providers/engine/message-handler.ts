@@ -5,7 +5,7 @@ import Database from './database'
 import areas from '../../config/areas'
 import { RequestsService } from '../../requests/requests.service'
 import { Templater } from './templater'
-import BaseHandler from './base-handler'
+import { Actions, BaseHandler } from './base-handler'
 import { FetchService } from 'nestjs-fetch'
 
 const START_COMMAND: string = '/start'
@@ -13,18 +13,6 @@ const EDIT_COMMAND: string = '/edit'
 
 const CHOSE = '✅'
 const TRIAL = 'TRIAL'
-
-const ACTIONS = {
-    10: { currentAction: 'ask-locale', nextAction: 'read-locale' },
-    11: { currentAction: 'waiting-for-reply', nextAction: 'read-min-price' },
-    0: { currentAction: 'ask-email', nextAction: 'read-email' },
-    1: { currentAction: 'waiting-for-reply', nextAction: null },
-    2: { currentAction: 'waiting-for-reply', nextAction: 'read-areas' },
-    3: { currentAction: 'waiting-for-reply', nextAction: 'read-beds' },
-    4: { currentAction: 'waiting-for-reply', nextAction: 'read-price' },
-    5: { currentAction: 'waiting-for-reply', nextAction: 'confirm' },
-    6: { currentAction: 'display-results', nextAction: null },
-}
 
 export default class MessageHandler extends BaseHandler {
     constructor(
@@ -45,23 +33,26 @@ export default class MessageHandler extends BaseHandler {
         try {
             if (message.text.toString() === START_COMMAND) {
                 await this.handleLocaleMessage(message, user)
-            } else if (user.nextAction && user.nextAction === 'read-email') {
+            } else if (
+                user.nextAction &&
+                user.nextAction === Actions.ReadEmail
+            ) {
                 await this.handleEmailMessage(message, user)
             } else if (
                 user.nextAction &&
-                (user.nextAction.includes('read-price') ||
-                    user.nextAction.includes('read-edit-price'))
+                (user.nextAction.includes(Actions.ReadPrice) ||
+                    user.nextAction.includes(Actions.ReadEditPrice))
             ) {
                 await this.handlePriceMessage(message, user)
             } else if (
                 user.nextAction &&
-                (user.nextAction.includes('read-min-price') ||
-                    user.nextAction.includes('read-edit-min-price'))
+                (user.nextAction.includes(Actions.ReadMinPrice) ||
+                    user.nextAction.includes(Actions.ReadEditMinPrice))
             ) {
                 await this.handleMinPriceMessage(
                     message,
                     user,
-                    user.nextAction.includes('read-edit-min-price')
+                    user.nextAction.includes(Actions.ReadEditMinPrice)
                 )
             } else if (message.text.toString() === EDIT_COMMAND) {
                 await this.handleEditMessage(message)
@@ -73,7 +64,8 @@ export default class MessageHandler extends BaseHandler {
 
     async handleLocaleMessage(message, user) {
         await this.usersService.update(user.userId, user.chatId, {
-            ...ACTIONS[10],
+            currentAction: Actions.WaitingForReply,
+            nextAction: Actions.ReadEditMinPrice,
             requestId: null,
         })
         await this.bot.sendMessage(message.chat.id, locales.askLocale, {
@@ -139,7 +131,15 @@ export default class MessageHandler extends BaseHandler {
 
     async handleMinPriceMessage(message, user, isEdit = false) {
         const minPrice: number = +message.text
-        const actionData = isEdit ? ACTIONS[5] : ACTIONS[4]
+        const actionData = isEdit
+            ? {
+                  currentAction: Actions.WaitingForReply,
+                  nextAction: Actions.Confirm,
+              }
+            : {
+                  currentAction: Actions.WaitingForReply,
+                  nextAction: Actions.ReadPrice,
+              }
         await this.usersService.update(user.userId, user.chatId, actionData)
         console.debug(minPrice)
         if (Number.isNaN(minPrice)) {
@@ -162,7 +162,10 @@ export default class MessageHandler extends BaseHandler {
             await this.sendStartSearchingPreview(user, request)
         } else {
             await this.bot.sendMessage(user.chatId, locales[user.locale].price)
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[4])
+            await this.usersService.update(user.userId, user.chatId, {
+                currentAction: Actions.WaitingForReply,
+                nextAction: Actions.ReadPrice,
+            })
         }
     }
 
@@ -184,7 +187,10 @@ export default class MessageHandler extends BaseHandler {
                 )
             }
             await this.bot.deleteMessage(user.chatId, message.message_id)
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[5])
+            await this.usersService.update(user.userId, user.chatId, {
+                currentAction: Actions.WaitingForReply,
+                nextAction: Actions.Confirm,
+            })
             await this.bot.sendMessage(
                 message.chat.id,
                 locales[user.locale].finish,
@@ -209,7 +215,8 @@ export default class MessageHandler extends BaseHandler {
 
     async handleStartMessage(message, user) {
         await this.usersService.update(user.userId, user.chatId, {
-            ...ACTIONS[0],
+            currentAction: Actions.AskEmail,
+            nextAction: Actions.ReadEmail,
             requestId: null,
         })
         await this.bot.sendMessage(message.chat.id, locales[user.locale].start)
@@ -224,7 +231,10 @@ export default class MessageHandler extends BaseHandler {
         )
         const databaseUser: any = await Database.findUser(email)
         if (!databaseUser) {
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[1])
+            await this.usersService.update(user.userId, user.chatId, {
+                currentAction: Actions.WaitingForReply,
+                nextAction: null,
+            })
             const options: any = {
                 reply_markup: {
                     inline_keyboard: [
@@ -261,7 +271,8 @@ export default class MessageHandler extends BaseHandler {
                 databaseUser.get('TRIAL') === TRIAL
             ) {
                 await this.usersService.update(user.userId, user.chatId, {
-                    ...ACTIONS[2],
+                    currentAction: Actions.WaitingForReply,
+                    nextAction: Actions.ReadAreas,
                     isTrial: databaseUser.get('TRIAL') === TRIAL,
                 })
                 let keyboard: any = []
@@ -287,11 +298,10 @@ export default class MessageHandler extends BaseHandler {
                     options
                 )
             } else {
-                await this.usersService.update(
-                    user.userId,
-                    user.chatId,
-                    ACTIONS[1]
-                )
+                await this.usersService.update(user.userId, user.chatId, {
+                    currentAction: Actions.WaitingForReply,
+                    nextAction: null,
+                })
                 const options: any = {
                     reply_markup: {
                         inline_keyboard: [
@@ -329,7 +339,10 @@ export default class MessageHandler extends BaseHandler {
                 )
             }
         } else {
-            await this.usersService.update(user.userId, user.chatId, ACTIONS[1])
+            await this.usersService.update(user.userId, user.chatId, {
+                currentAction: Actions.WaitingForReply,
+                nextAction: null,
+            })
             const options: any = {
                 reply_markup: {
                     inline_keyboard: [
