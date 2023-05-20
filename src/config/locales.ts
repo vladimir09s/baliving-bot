@@ -65,7 +65,7 @@ export default {
         price: 'Specify the upper limit of the price per month in dollars.\n\nWarning!\nEnter numbers only.',
         finish: 'Noted.\nPlease check the data. You can always edit your preferences by pressing <strong>Menu</strong> ➡️ <strong>Edit</strong>',
         details:
-            'Locations: ${areas}\nNumber of bedrooms: ${beds}\nPrice up to: ${price}$/month',
+            'Locations: ${areas}\nNumber of bedrooms: ${beds}\nPrice: ${price}$/month',
         agree: "That's right! Start searching",
         menu: 'Menu',
         choseEditOption: 'Choose what to do',
