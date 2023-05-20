@@ -350,7 +350,7 @@ export default class CallbackHandler extends BaseHandler {
         await this.bot.sendMessage(user.chatId, locales[user.locale].checking)
         const request: any = await this.requestsService.find(+user.requestId)
         console.log(request)
-        const databaseProperties: any = await Database.findProperties(
+        const databaseProperties: any = await Database.findNewProperties(
             request.areas,
             request.beds,
             request.minPrice,
@@ -418,27 +418,17 @@ export default class CallbackHandler extends BaseHandler {
                     const i = images.indexOf(url)
                     if (i < 3) {
                         // limit = 3
-                        const response = await this.fetch.get(url)
-                        const buffer = await response.arrayBuffer()
                         media.push({
                             type: 'photo',
-                            media: {
-                                source: Buffer.from(buffer),
-                                filename: `image_${i}.jpg`,
-                            },
+                            media: url,
                         })
                     }
                 }
                 if (media.length) {
-                    for (const item of media) {
-                        await this.bot.sendPhoto(
-                            user.chatId,
-                            item.media.source,
-                            {
-                                parse_mode: 'markdown',
-                            }
-                        )
-                    }
+                    await this.bot.sendMediaGroup(
+                        user.chatId,
+                        media,
+                    )
                 }
             }
 

@@ -189,11 +189,7 @@ export class TasksService {
                     ],
                 }
             }
-            const template = Templater.applyProperty(
-                property,
-                user.locale,
-                CATALOG_URL
-            )
+            const template = Templater.applyProperty(property, user.locale)
             await bot.sendMessage(user.chatId, template, options)
 
             await this.handlePhotos(property, user, bot)
@@ -216,23 +212,14 @@ export class TasksService {
                 const i = images.indexOf(url)
                 if (i < 3) {
                     // limit = 3
-                    const response = await this.fetch.get(url)
-                    const buffer = await response.arrayBuffer()
                     media.push({
                         type: 'photo',
-                        media: {
-                            source: Buffer.from(buffer),
-                            filename: `image_${i}.jpg`,
-                        },
+                        media: url,
                     })
                 }
             }
             if (media.length) {
-                for (const item of media) {
-                    await bot.sendPhoto(user.chatId, item.media.source, {
-                        parse_mode: 'markdown',
-                    })
-                }
+                await bot.sendMediaGroup(user.chatId, media)
             }
         }
     }
