@@ -36,6 +36,8 @@ export default {
             'К сожалению, сейчас я ничего не нашел по вашему запросу.\n\nЯ буду присылать вам новые предложения, как только они появятся!\n\nТакже вы можете изменить параметры подбора, нажав Меню.',
         foundOptions:
             'Сейчас я нашел для вас такие варианты. Я буду присылать вам новые предложения по вашим параметрам, как только они появятся!\n\nТакже вы можешь редактировать запрос, нажав Меню.',
+        maybeYouCanFindSomethingElse: "Возможно, Ты можешь найти что-нибудь еще",
+        showTheFollowingAds: "Показать следующие объявления",
         finalMessage:
             'Район: ${areas}\nКоличество спален: ${beds}\nЦена: ${price}$/месяц\n\n${link}',
         link: 'Ссылка',
@@ -78,6 +80,8 @@ export default {
             "Sorry, I didn't find anything matching your search right now.\n\nI'll send you new suggestions as soon as they become available!\n\nYou can also change your search options by pressing Menu.",
         foundOptions:
             "Now I found these options for you. I'll send you new suggestions for your options as soon as they become available!\n\nYou can also edit the request by pressing Menu.",
+        maybeYouCanFindSomethingElse: "Maybe you can find something else",
+        showTheFollowingAds: "Show the following ads",
         finalMessage:
             'Location: ${areas}\nNumber of bedrooms: ${beds}\nPrice: ${price}$/month\n\n${link}',
         link: 'Link',

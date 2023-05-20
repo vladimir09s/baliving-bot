@@ -93,8 +93,8 @@ export default class CallbackHandler extends BaseHandler {
                 }
             } else if (user.nextAction === 'confirm') {
                 console.log(data)
-                if (data === START_SEARCH) {
-                    await this.handleSearchMessage(messageId, user)
+                if (data.includes(Actions.StartSearch)) {
+                    await this.handleSearchMessage(messageId, user, data.includes(Actions.StartSearchNext))
                 }
             } else if (
                 user.nextAction &&
@@ -341,23 +341,28 @@ export default class CallbackHandler extends BaseHandler {
         }
     }
 
-    async handleSearchMessage(messageId, user) {
-        // await this.bot.editMessageReplyMarkup(user.chatId, messageId, null, null);
+    async handleSearchMessage(messageId, user, isNext) {
         await this.usersService.update(user.userId, user.chatId, {
-            currentAction: Actions.DisplayResults,
-            nextAction: null,
+            currentAction: Actions.WaitingForReply,
+            nextAction: Actions.Confirm,
         })
         await this.bot.sendMessage(user.chatId, locales[user.locale].checking)
         const request: any = await this.requestsService.find(+user.requestId)
-        console.log(request)
+        const properties: any = (() => {
+            if (!isNext) {
+                return []
+            }
+            return request.properties ?? []
+        })()
+        console.debug(isNext);
         const databaseProperties: any = await Database.findNewProperties(
             request.areas,
             request.beds,
             request.minPrice,
-            request.price
+            request.price,
+            properties
         )
         if (databaseProperties.length) {
-            const properties: number[] = []
             let isSent: boolean = false
             for (const property of databaseProperties) {
                 if (this.isValidUrl(property.get('Телеграм ссылка'))) {
@@ -368,11 +373,24 @@ export default class CallbackHandler extends BaseHandler {
                     }
                 }
             }
+            await this.requestsService.update(request.id, { properties })
             if (isSent) {
-                await this.requestsService.update(request.id, { properties })
                 await this.bot.sendMessage(
                     user.chatId,
-                    locales[user.locale].foundOptions
+                    locales[user.locale].maybeYouCanFindSomethingElse,
+                    {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: locales[user.locale]
+                                            .showTheFollowingAds,
+                                        callback_data: Actions.StartSearchNext,
+                                    },
+                                ],
+                            ],
+                        },
+                    }
                 )
             }
         } else {
@@ -402,10 +420,7 @@ export default class CallbackHandler extends BaseHandler {
                 }
             }
 
-            const template = Templater.applyProperty(
-                property,
-                user.locale,
-            )
+            const template = Templater.applyProperty(property, user.locale)
             await this.bot.sendMessage(user.chatId, template, options)
 
             if (property.get('Фото') && Array.isArray(property.get('Фото'))) {
@@ -425,10 +440,7 @@ export default class CallbackHandler extends BaseHandler {
                     }
                 }
                 if (media.length) {
-                    await this.bot.sendMediaGroup(
-                        user.chatId,
-                        media,
-                    )
+                    await this.bot.sendMediaGroup(user.chatId, media)
                 }
             }
 
@@ -579,7 +591,7 @@ export default class CallbackHandler extends BaseHandler {
         const [newKeyboard, anySelected] = SelectionKeyboard.proccess(
             keyboard,
             numberOfBeds,
-            beds,
+            beds
         )
         if (anySelected) {
             newKeyboard.push([
@@ -588,7 +600,7 @@ export default class CallbackHandler extends BaseHandler {
         }
         await this.bot.editMessageReplyMarkup(
             { inline_keyboard: newKeyboard },
-            {  chat_id: user.chatId, message_id: messageId, }
+            { chat_id: user.chatId, message_id: messageId }
         )
         const keyboardItems: any = []
         keyboard.forEach((subKeyboard) => {
@@ -613,7 +625,7 @@ export default class CallbackHandler extends BaseHandler {
         }
         await this.bot.editMessageReplyMarkup(
             { inline_keyboard: newKeyboard },
-            {  chat_id: user.chatId, message_id: messageId, }
+            { chat_id: user.chatId, message_id: messageId }
         )
     }
 }

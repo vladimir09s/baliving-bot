@@ -8,6 +8,8 @@ export enum Actions {
     WaitingForReply = 'waiting-for-reply',
     Confirm = 'confirm',
     DisplayResults = 'display-results',
+    StartSearch = 'start-search',
+    StartSearchNext = 'start-search-next',
 
     AskEmail = 'ask-email',
     ReadEmail = 'read-email',

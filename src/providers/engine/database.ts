@@ -42,7 +42,7 @@ export default class Database {
         `
     }
 
-    static async findProperties(areas, beds, minPrice, price) {
+    static async findProperties(areas, beds, minPrice, price, limit = 3) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
         try {
             return await airtable
@@ -55,6 +55,7 @@ export default class Database {
                         minPrice,
                         price
                     ),
+                    maxRecords: limit
                 })
                 .all()
         } catch (exception) {
@@ -67,7 +68,8 @@ export default class Database {
         beds,
         minPrice,
         price,
-        properties = []
+        properties = [],
+        limit = 3
     ) {
         const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
         try {
@@ -82,6 +84,7 @@ export default class Database {
                         price,
                         properties
                     ),
+                    maxRecords: limit
                 })
                 .all()
         } catch (exception) {
