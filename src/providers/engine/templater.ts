@@ -2,7 +2,7 @@ import locales from '../../config/locales'
 import areas from '../../config/areas'
 
 export class Templater {
-    static applyProperty(property, userLocale, catalogURL) {
+    static applyProperty(property, userLocale) {
         let template: string = locales[userLocale].finalMessage
         if (property.get('Заголовок') && userLocale === 'ru') {
             template = `${property.get('Заголовок')}\n${template}`
@@ -24,8 +24,7 @@ export class Templater {
             '${price}',
             property.get('Цена долларов в месяц')
         )
-        let link = catalogURL
-        link = link.replace('${id}', property.get('ad_id'))
+        let link = locales[userLocale].catalog_url.replace('${id}', property.get('ad_id'))
         template = template.replace(
             '${link}',
             `<a href="${link}">${locales[userLocale].link}</a>`

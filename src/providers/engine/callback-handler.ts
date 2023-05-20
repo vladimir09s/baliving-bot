@@ -21,9 +21,6 @@ const EDIT_BEDS = 'edit-beds'
 const EDIT_PRICE = 'edit-price'
 const EDIT_MIN_PRICE = 'edit-min-price'
 
-const CATALOG_URL =
-    'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=Popup__find__${id}'
-
 export default class CallbackHandler extends BaseHandler {
     constructor(
         usersService: UsersService,
@@ -408,7 +405,6 @@ export default class CallbackHandler extends BaseHandler {
             const template = Templater.applyProperty(
                 property,
                 user.locale,
-                CATALOG_URL
             )
             await this.bot.sendMessage(user.chatId, template, options)
 
