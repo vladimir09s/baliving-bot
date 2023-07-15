@@ -202,25 +202,29 @@ export class TasksService {
     }
 
     async handlePhotos(property, user, bot) {
-        if (property.get('Фото') && Array.isArray(property.get('Фото'))) {
-            console.debug('Photo is processing...')
-            let media: any = []
-            const images = property
-                .get('Фото')
-                .map((image) => image.thumbnails.large.url)
-            for (const url of images) {
-                const i = images.indexOf(url)
-                if (i < 3) {
-                    // limit = 3
-                    media.push({
-                        type: 'photo',
-                        media: url,
-                    })
+        try {
+            if (property.get('Фото') && Array.isArray(property.get('Фото'))) {
+                console.debug('Photo is processing...')
+                let media: any = []
+                const images = property
+                    .get('Фото')
+                    .map((image) => image.thumbnails.large.url)
+                for (const url of images) {
+                    const i = images.indexOf(url)
+                    if (i < 3) {
+                        // limit = 3
+                        media.push({
+                            type: 'photo',
+                            media: url,
+                        })
+                    }
+                }
+                if (media.length) {
+                    await bot.sendMediaGroup(user.chatId, media)
                 }
             }
-            if (media.length) {
-                await bot.sendMediaGroup(user.chatId, media)
-            }
+        } catch (exception) {
+            console.debug(exception);
         }
     }
 
