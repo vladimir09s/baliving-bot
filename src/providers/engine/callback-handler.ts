@@ -421,7 +421,6 @@ export default class CallbackHandler extends BaseHandler {
             }
 
             const template = Templater.applyProperty(property, user.locale)
-            await this.bot.sendMessage(user.chatId, template, options)
 
             if (property.get('Фото') && Array.isArray(property.get('Фото'))) {
                 console.debug('Photo is processing...')
@@ -443,6 +442,7 @@ export default class CallbackHandler extends BaseHandler {
                     await this.bot.sendMediaGroup(user.chatId, media)
                 }
             }
+            await this.bot.sendMessage(user.chatId, template, options)
 
             return +property.get('Номер')
         } catch (exception) {
