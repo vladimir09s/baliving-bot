@@ -42,7 +42,7 @@ export default {
             'Район: ${areas}\nКоличество спален: ${beds}\nЦена: ${price}$/месяц\n\n${link}',
         link: 'Ссылка',
         write: 'Написать арендодателю',
-        catalog_url: 'https://baliving.ru/arenda-zhilya-na-bali-na-dlitelnyy-srok?filters499852640=Popup__find__${id}'
+        catalog_url: 'https://baliving.ru/villa-month?filters583766972=ad_id__eq__${id}'
     },
     en: {
         language: '🇺🇸English',
@@ -86,6 +86,6 @@ export default {
             'Location: ${areas}\nNumber of bedrooms: ${beds}\nPrice: ${price}$/month\n\n${link}',
         link: 'Link',
         write: 'Write to landlord',
-        catalog_url: 'https://baliving.ru/en/long-term-rentals-housing-in-bali?filters511398389=Popup+personal__find__${id}'
+        catalog_url: 'https://baliving.ru/villa-month?filters583766972=ad_id__eq__${id}'
     },
 }

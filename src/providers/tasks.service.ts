@@ -190,9 +190,10 @@ export class TasksService {
                 }
             }
             const template = Templater.applyProperty(property, user.locale)
-            await bot.sendMessage(user.chatId, template, options)
 
             await this.handlePhotos(property, user, bot)
+
+            await bot.sendMessage(user.chatId, template, options)
 
             return +property.get('Номер')
         } catch (exception) {
